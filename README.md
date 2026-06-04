@@ -6,6 +6,8 @@ A lightweight live audience response tool for university lectures. The lecturer 
 
 **→ [Quickstart guide for lecturers](QUICKSTART.md)** — get up and running in 5 minutes.
 
+**→ [Live demo](https://quiqui-x9um.onrender.com)** — hosted instance (may take ~30s to wake up on first visit).
+
 ---
 
 ## Features
