@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy / Datenschutzerklärung — QuiQui</title>
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    .lang-nav {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .lang-nav a {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-muted);
+      text-decoration: none;
+      padding: 4px 12px;
+      border: 0.5px solid var(--color-border-mid);
+      border-radius: 99px;
+    }
+    .lang-nav a:hover,
+    .lang-nav a.active {
+      background: var(--color-accent-light);
+      color: var(--color-accent-dark);
+      border-color: var(--color-accent);
+    }
+    .legal-content { display: none; }
+    .legal-content.active { display: block; }
+    .legal-content h1 { font-size: 20px; font-weight: 600; margin-bottom: 1.25rem; }
+    .legal-content h2 { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); margin: 1.25rem 0 0.5rem; }
+    .legal-content p { font-size: 14px; line-height: 1.7; margin-bottom: 0.75rem; }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <header class="top-bar">
+      <a href="/" id="logo-link"><img src="/quiqui-logo.png" alt="QuiQui" class="logo" /></a>
+    </header>
+
+    <main>
+      <section class="card">
+
+        <nav class="lang-nav">
+          <a href="#de" id="btn-de" class="active" onclick="switchLang('de')">Deutsch</a>
+          <a href="#en" id="btn-en" onclick="switchLang('en')">English</a>
+        </nav>
+
+        <!-- German -->
+        <div class="legal-content active" id="lang-de">
+          <h1>Datenschutzerklärung</h1>
+
+          <h2>Verantwortlicher</h2>
+          <p>Verantwortlicher für die Datenverarbeitung auf dieser Website ist die im <a href="/impressum">Impressum</a> genannte Person bzw. Einrichtung.</p>
+
+          <h2>Zweck der Anwendung</h2>
+          <p>Diese Website stellt eine webbasierte Lehr- und Lernanwendung zur Verfügung. Die Nutzung ist ohne Benutzerkonto möglich.</p>
+          <p>Es werden keine Namen, E-Mail-Adressen oder sonstigen personenbezogenen Profildaten erhoben.</p>
+
+          <h2>Verarbeitung innerhalb der Anwendung</h2>
+          <p>Von Teilnehmenden eingegebene Antworten werden ausschließlich zur Durchführung der jeweiligen Sitzung verarbeitet.</p>
+          <p>Die Daten werden nur temporär im Arbeitsspeicher des Servers vorgehalten und nach Beendigung bzw. Ablauf der Sitzung automatisch gelöscht. Eine dauerhafte Speicherung erfolgt nicht.</p>
+          <p>Zur technischen Zuordnung aktiver Verbindungen werden temporäre Sitzungskennungen verwendet. Diese dienen ausschließlich dem Betrieb der Anwendung und werden nicht dauerhaft gespeichert.</p>
+          <p>Lehrkräfte können öffentliche GitHub-Repository-URLs angeben, um Inhalte für die Anwendung bereitzustellen. Diese URLs werden ausschließlich zur Bereitstellung der Funktionalität verarbeitet.</p>
+
+          <h2>Hosting und Server-Logfiles</h2>
+          <p>Beim Aufruf dieser Website verarbeitet der Hosting-Anbieter technisch erforderliche Zugriffsdaten in Server-Logfiles. Hierzu können insbesondere die IP-Adresse, Datum und Uhrzeit des Zugriffs, Informationen zum verwendeten Browser sowie die aufgerufenen Seiten gehören.</p>
+          <p>Die Verarbeitung erfolgt zum sicheren und zuverlässigen Betrieb der Website auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO.</p>
+
+          <h2>Cookies</h2>
+          <p>Diese Website verwendet keine Cookies.</p>
+
+          <h2>Analyse- und Trackingdienste</h2>
+          <p>Es werden keine Analyse-, Tracking- oder Marketingdienste eingesetzt.</p>
+
+          <h2>Betroffenenrechte</h2>
+          <p>Soweit personenbezogene Daten verarbeitet werden, stehen den betroffenen Personen die gesetzlichen Rechte nach der DSGVO zu.</p>
+        </div>
+
+        <!-- English -->
+        <div class="legal-content" id="lang-en">
+          <h1>Privacy Policy</h1>
+
+          <h2>Controller</h2>
+          <p>The controller responsible for data processing on this website is the person or institution named in the <a href="/impressum">Impressum</a>.</p>
+
+          <h2>Purpose of the Application</h2>
+          <p>This website provides a web-based teaching and learning application. No user account is required to use it.</p>
+          <p>No names, email addresses, or other personal profile data are collected.</p>
+
+          <h2>Data Processing Within the Application</h2>
+          <p>Answers submitted by participants are processed solely for the purpose of conducting the respective session.</p>
+          <p>Data is held only temporarily in the server's memory and is automatically deleted when the session ends or expires. No permanent storage takes place.</p>
+          <p>Temporary session identifiers are used for the technical assignment of active connections. These serve exclusively to operate the application and are not stored permanently.</p>
+          <p>Teachers may provide public GitHub repository URLs to supply content for the application. These URLs are processed solely to provide that functionality.</p>
+
+          <h2>Hosting and Server Log Files</h2>
+          <p>When this website is accessed, the hosting provider processes technically necessary access data in server log files. This may include the IP address, date and time of access, information about the browser used, and the pages visited.</p>
+          <p>Processing is carried out for the secure and reliable operation of the website on the basis of Art. 6(1)(f) GDPR.</p>
+
+          <h2>Cookies</h2>
+          <p>This website does not use cookies.</p>
+
+          <h2>Analytics and Tracking</h2>
+          <p>No analytics, tracking, or marketing services are used.</p>
+
+          <h2>Data Subject Rights</h2>
+          <p>To the extent that personal data is processed, data subjects are entitled to the statutory rights under the GDPR.</p>
+        </div>
+
+      </section>
+      <p style="font-size:12px;color:#9e9e99;margin-top:1rem"><a href="javascript:history.back()" id="back-link" style="color:inherit">← Back</a></p>
+    </main>
+
+    <footer class="site-footer" id="legal-footer">
+      <a href="/impressum">Impressum</a>
+      <a href="/privacy">Privacy Policy</a>
+    </footer>
+  </div>
+
+  <script>
+    function switchLang(lang) {
+      document.querySelectorAll('.legal-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.lang-nav a').forEach(el => el.classList.remove('active'));
+      document.getElementById('lang-' + lang).classList.add('active');
+      document.getElementById('btn-' + lang).classList.add('active');
+    }
+    // Auto-detect from URL hash
+    if (window.location.hash === '#en') switchLang('en');
+
+    // Wire up back URL if provided
+    const params = new URLSearchParams(location.search);
+    const back = params.get('back');
+    if (back && (back.startsWith('/') || back.startsWith(location.origin))) {
+      document.getElementById('logo-link').href = back;
+      document.getElementById('back-link').href = back;
+      const footer = document.getElementById('legal-footer');
+      footer.querySelector('a[href="/impressum"]').href = '/impressum?back=' + encodeURIComponent(back);
+      footer.querySelector('a[href="/privacy"]').href = '/privacy?back=' + encodeURIComponent(back);
+    }
+  </script>
+</body>
+</html>
