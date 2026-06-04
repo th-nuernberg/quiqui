@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuiQui — Live Audience Response</title>
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    .hero {
+      text-align: center;
+      padding: 3rem 1rem 2rem;
+    }
+    .hero img {
+      height: 48px;
+      width: auto;
+      margin-bottom: 1.25rem;
+    }
+    .hero-tagline {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--color-text);
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    .hero-sub {
+      font-size: 14px;
+      color: var(--color-text-muted);
+      max-width: 380px;
+      margin: 0 auto 2rem;
+      line-height: 1.6;
+    }
+    .btn-primary.btn-large {
+      padding: 12px 32px;
+      font-size: 15px;
+    }
+    .screenshots {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2.5rem;
+      align-items: flex-start;
+    }
+    .screenshots figure {
+      flex: 1;
+      margin: 0;
+    }
+    .screenshots img {
+      width: 100%;
+      border: 0.5px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .screenshots figcaption {
+      font-size: 12px;
+      color: var(--color-text-hint);
+      text-align: center;
+      margin-top: 6px;
+    }
+    .features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .feature {
+      font-size: 13px;
+      color: var(--color-text-muted);
+      padding: 10px 14px;
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-md);
+      line-height: 1.5;
+    }
+    .feature strong {
+      color: var(--color-text);
+      display: block;
+      margin-bottom: 2px;
+    }
+    @media (max-width: 500px) {
+      .screenshots { flex-direction: column; }
+      .features { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <header class="top-bar">
+      <img src="/quiqui-logo.png" alt="QuiQui" class="logo" />
+    </header>
+
+    <main>
+      <div class="hero">
+        <p class="hero-tagline">Live audience response for university lectures</p>
+        <p class="hero-sub">Pose a question, students answer on their phones, the class sees live results — no login, no app install.</p>
+        <a href="https://github.com/albrechtje/quiqui/blob/main/QUICKSTART.md" class="btn-primary btn-large" style="display:inline-block;text-decoration:none;">
+          Quickstart for Lecturers →
+        </a>
+      </div>
+
+      <section class="card">
+        <div class="section-label">Screenshots</div>
+        <div class="screenshots">
+          <figure>
+            <img src="/teacher-view.png" alt="Teacher view showing question list and live bar chart" />
+            <figcaption>Teacher view</figcaption>
+          </figure>
+          <figure>
+            <img src="/student-view.png" alt="Student view showing a question with answer options" />
+            <figcaption>Student view</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-label">Features</div>
+        <div class="features">
+          <div class="feature"><strong>No student login</strong>Scan a QR code or visit a URL — that's it.</div>
+          <div class="feature"><strong>Live results</strong>Bar chart updates in real time as answers come in.</div>
+          <div class="feature"><strong>Questions in Git</strong>Edit a YAML file in GitHub, pull latest in the teacher view.</div>
+          <div class="feature"><strong>Markdown &amp; LaTeX</strong>Code blocks, inline code, and math expressions supported.</div>
+          <div class="feature"><strong>No database</strong>All session state is in memory — nothing persists.</div>
+          <div class="feature"><strong>Open source</strong>AGPL-3.0 — free to use, self-host, and modify.</div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a href="https://github.com/albrechtje/quiqui" target="_blank" rel="noopener">GitHub</a>
+      <a href="/impressum">Impressum</a>
+      <a href="/privacy">Privacy Policy</a>
+    </footer>
+  </div>
+</body>
+</html>
