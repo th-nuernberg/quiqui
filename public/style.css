@@ -457,6 +457,23 @@ select:focus {
   color: #E6F1FB;
 }
 
+/* ─── Footer ───────────────────────────────────────────────────── */
+.site-footer {
+  text-align: center;
+  padding: 1.5rem 0 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+.site-footer a {
+  font-size: 12px;
+  color: var(--color-text-hint);
+  text-decoration: none;
+}
+
+.site-footer a:hover { color: var(--color-text-muted); }
+
 /* ─── Markdown rendering ───────────────────────────────────────── */
 .active-question-text p,
 .q-heading p { margin: 0 0 0.5em; }

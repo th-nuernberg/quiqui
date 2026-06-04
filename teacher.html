@@ -95,6 +95,18 @@
     </main>
   </div>
 
+  <footer class="site-footer">
+    <a href="/impressum" id="footer-impressum">Impressum</a>
+    <a href="/privacy" id="footer-privacy">Privacy Policy</a>
+  </footer>
+
+  <script>
+    (function() {
+      const back = encodeURIComponent(location.href);
+      document.getElementById('footer-impressum').href = '/impressum?back=' + back;
+      document.getElementById('footer-privacy').href = '/privacy?back=' + back;
+    })();
+  </script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/marked.min.js"></script>
   <script src="/katex.min.js"></script>

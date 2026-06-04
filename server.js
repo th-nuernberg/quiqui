@@ -1,10 +1,11 @@
-require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
+const envPath = fs.existsSync(path.join(__dirname, '.env')) ? path.join(__dirname, '.env') : '/etc/secrets/.env';
+require('dotenv').config({ path: envPath });
 
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const path = require('path');
-const fs = require('fs');
 const crypto = require('crypto'); // used for random session ID fallback
 const yaml = require('js-yaml');
 const simpleGit = require('simple-git');
@@ -94,6 +95,139 @@ app.get(`/${TEACHER_SLUG}`, (req, res) => {
 // Student join page
 app.get('/join/:sessionId', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'student.html'));
+});
+
+// Legal pages
+app.get('/impressum', (req, res) => {
+  const raw = req.query.back || '';
+  const back = (raw.startsWith('/') || raw.startsWith(`${req.protocol}://${req.hostname}`)) ? raw : null;
+  const logoHref = back || '/';
+  const backLink = back ? back : 'javascript:history.back()';
+
+  function field(envVar, label) {
+    const val = process.env[envVar];
+    return val
+      ? val
+      : `<span class="placeholder">${label}</span>`;
+  }
+
+  const footerBack = back ? '?back=' + encodeURIComponent(back) : '';
+  const html = `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Impressum — QuiQui</title>
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    .lang-nav { display:flex; gap:1rem; margin-bottom:1.5rem; }
+    .lang-nav a { font-size:13px; font-weight:500; color:var(--color-text-muted); text-decoration:none; padding:4px 12px; border:0.5px solid var(--color-border-mid); border-radius:99px; }
+    .lang-nav a:hover, .lang-nav a.active { background:var(--color-accent-light); color:var(--color-accent-dark); border-color:var(--color-accent); }
+    .legal-content { display:none; }
+    .legal-content.active { display:block; }
+    .legal-content h1 { font-size:20px; font-weight:600; margin-bottom:1.25rem; }
+    .legal-content h2 { font-size:14px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:var(--color-text-muted); margin:1.25rem 0 0.5rem; }
+    .legal-content p { font-size:14px; line-height:1.7; margin-bottom:0.75rem; }
+    .placeholder { background:var(--color-accent-light); color:var(--color-accent-dark); border-radius:3px; padding:1px 6px; font-style:italic; }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <header class="top-bar">
+      <a href="${logoHref}"><img src="/quiqui-logo.png" alt="QuiQui" class="logo" /></a>
+    </header>
+    <main>
+      <section class="card">
+        <nav class="lang-nav">
+          <a href="#de" id="btn-de" class="active" onclick="switchLang('de')">Deutsch</a>
+          <a href="#en" id="btn-en" onclick="switchLang('en')">English</a>
+        </nav>
+
+        <div class="legal-content active" id="lang-de">
+          <h1>Impressum</h1>
+
+          <h2>Angaben gemäß § 5 TMG</h2>
+          <p>
+            ${field('IMPRESSUM_NAME', 'Titel, Vorname, Nachname')}<br />
+            ${field('IMPRESSUM_INSTITUTION', 'Institution / Hochschule')}<br />
+            ${field('IMPRESSUM_DEPARTMENT', 'Fakultät / Fachbereich')}<br />
+            ${field('IMPRESSUM_STREET', 'Straße und Hausnummer')}<br />
+            ${field('IMPRESSUM_CITY', 'PLZ Ort')}
+          </p>
+
+          <h2>Kontakt</h2>
+          <p>E-Mail: ${field('IMPRESSUM_EMAIL', 'vorname.nachname@hochschule.de')}</p>
+
+          <h2>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h2>
+          <p>
+            ${field('IMPRESSUM_NAME', 'Titel, Vorname, Nachname')}<br />
+            ${field('IMPRESSUM_STREET', 'Straße und Hausnummer')}<br />
+            ${field('IMPRESSUM_CITY', 'PLZ Ort')}
+          </p>
+
+          <h2>Hinweis</h2>
+          <p>
+            Diese Website wird im Rahmen von Lehrveranstaltungen an der
+            ${field('IMPRESSUM_INSTITUTION', 'Name der Hochschule')} betrieben.
+            Sie dient ausschließlich Bildungszwecken.
+          </p>
+        </div>
+
+        <div class="legal-content" id="lang-en">
+          <h1>Legal Notice (Impressum)</h1>
+
+          <h2>Information according to § 5 TMG</h2>
+          <p>
+            ${field('IMPRESSUM_NAME', 'Title, First name, Last name')}<br />
+            ${field('IMPRESSUM_INSTITUTION', 'Institution / University')}<br />
+            ${field('IMPRESSUM_DEPARTMENT', 'Faculty / Department')}<br />
+            ${field('IMPRESSUM_STREET', 'Street and number')}<br />
+            ${field('IMPRESSUM_CITY', 'Postcode City')}
+          </p>
+
+          <h2>Contact</h2>
+          <p>Email: ${field('IMPRESSUM_EMAIL', 'firstname.lastname@university.de')}</p>
+
+          <h2>Responsible for content according to § 18 para. 2 MStV</h2>
+          <p>
+            ${field('IMPRESSUM_NAME', 'Title, First name, Last name')}<br />
+            ${field('IMPRESSUM_STREET', 'Street and number')}<br />
+            ${field('IMPRESSUM_CITY', 'Postcode City')}
+          </p>
+
+          <h2>Note</h2>
+          <p>
+            This website is operated in the context of courses at
+            ${field('IMPRESSUM_INSTITUTION', 'University name')} for educational purposes only.
+          </p>
+        </div>
+      </section>
+
+      <p style="font-size:12px;color:#9e9e99;margin-top:1rem">
+        <a href="${backLink}" style="color:inherit">← Back</a>
+      </p>
+    </main>
+    <footer class="site-footer">
+      <a href="/impressum${footerBack}">Impressum</a>
+      <a href="/privacy${footerBack}">Privacy Policy</a>
+    </footer>
+  </div>
+  <script>
+    function switchLang(lang) {
+      document.querySelectorAll('.legal-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.lang-nav a').forEach(el => el.classList.remove('active'));
+      document.getElementById('lang-' + lang).classList.add('active');
+      document.getElementById('btn-' + lang).classList.add('active');
+    }
+    if (window.location.hash === '#en') switchLang('en');
+  </script>
+</body>
+</html>`;
+  res.send(html);
+});
+
+app.get('/privacy', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
 });
 
 // Pull/clone repo and return list of yaml files + config
