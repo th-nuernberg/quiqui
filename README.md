@@ -6,7 +6,7 @@ A lightweight live audience response tool for university lectures. The lecturer 
 
 **→ [Quickstart guide for lecturers](QUICKSTART.md)** — get up and running in 5 minutes.
 
-**→ [Live demo](https://quiqui-x9um.onrender.com)** — hosted instance (may take ~30s to wake up on first visit).
+**→ [Live hosted service](https://quiqui-x9um.onrender.com)** — hosted instance (may take ~30s to wake up on first visit).
 
 ---
 
@@ -24,34 +24,7 @@ A lightweight live audience response tool for university lectures. The lecturer 
 
 ---
 
-## How it works
-
-### Teacher flow
-
-1. Open your bookmarked teacher URL: `https://your-deployment.com/teach-xk92p?repo=https://github.com/you/quiqui-questions`
-2. The repo is pulled automatically; the QR code and join URL appear in the top card — project these on screen for students to scan
-3. Select a question file from the dropdown, then click a question to preview it
-4. Click **Activate** to open voting — the live bar chart starts updating as students answer
-5. Click **Close voting** when done — students are sent back to the waiting screen
-6. Click **Next question →** to advance, or pick any question from the list
-
-### Student flow
-
-1. Scan the QR code or visit the join URL (e.g. `https://your-deployment.com/join/python101`) — no login required
-2. Wait on the waiting screen until the lecturer activates a question
-3. Select your answer(s) and submit — you can only submit once
-4. See the live distribution of answers across the class
-5. When the lecturer closes voting, you return to the waiting screen for the next question
-
-### Session lifecycle
-
-- A session is created when a teacher pulls a repo. It is identified by `session_url` from `config.yaml` (or a random ID if absent).
-- The session expires after **90 minutes of inactivity** (no pull, activate, or close action). On expiry, all server-side state and cloned files are deleted automatically.
-- Students at the join URL see "Waiting for the lecturer" while a session is active, and "No quiz session active at this URL" after it expires — without needing to refresh.
-
----
-
-## Getting started
+## Installation
 
 > **Lecturer?** See the [Quickstart guide](QUICKSTART.md) for a step-by-step walkthrough with screenshots.
 
@@ -166,28 +139,12 @@ This is not a substitute for HTTPS or a proper authentication system. For a shar
 
 ---
 
-## Deployment
-
-QuiQui runs on any platform that supports Node.js. [Render](https://render.com) is recommended — it has a free tier and supports persistent processes (required for Socket.io).
-
-1. Push this repo to GitHub
-2. Go to [render.com](https://render.com) → **New → Web Service** → connect your repo
-3. Set the build command to `npm install` and the start command to `npm start`
-4. Add environment variable `TEACHER_SLUG` in the dashboard (choose something hard to guess)
-5. Deploy, then bookmark your teacher URL: `https://your-app.onrender.com/<TEACHER_SLUG>?repo=https://github.com/you/quiqui-questions`
-
-> **Note:** Render's free tier spins down after 15 minutes of inactivity and takes ~30 seconds to wake on the next request. Open your teacher page a minute before class to avoid a cold start.
-
-Cloned question files live in `tmp/sessions/` and are deleted automatically when a session expires — no persistent storage needed.
-
----
-
 ## Contributing
 
-Contributions are welcome. For significant changes, please open an issue first to discuss what you'd like to change.
+Bug fix pull requests are welcome. For improvement ideas and feature requests, please open an issue — this project is intentionally kept as simple as possible, so new features are discussed before implementation.
 
 1. Fork the repo
-2. Create a feature branch (`git checkout -b feature/my-change`)
+2. Create a feature branch (`git checkout -b fix/my-fix`)
 3. Commit your changes
 4. Open a pull request
 
