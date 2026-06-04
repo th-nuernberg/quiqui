@@ -23,21 +23,19 @@ A lightweight live audience response tool for university lectures. The lecturer 
 ### Teacher flow
 
 1. Open your bookmarked teacher URL: `https://your-deployment.com/teach-xk92p?repo=https://github.com/you/quiqui-questions`
-2. Click **Pull latest** to clone your question repo
-3. Select a lecture file from the dropdown
-4. Click a question to select it, then click **Activate question**
-5. A QR code and join URL appear — project these for students to scan
-6. Watch the bar chart update live as answers come in
-7. Click **Close voting** when done — the chart freezes on all screens
-8. Select the next question and repeat
+2. The repo is pulled automatically; the QR code and join URL appear in the top card — project these on screen for students to scan
+3. Select a question file from the dropdown, then click a question to preview it
+4. Click **Activate** to open voting — the live bar chart starts updating as students answer
+5. Click **Close voting** when done — students are sent back to the waiting screen
+6. Click **Next question →** to advance, or pick any question from the list
 
 ### Student flow
 
-1. Scan the QR code or visit the join URL (e.g. `https://your-deployment.com/join/python101`)
-2. Wait for the lecturer to activate a question
+1. Scan the QR code or visit the join URL (e.g. `https://your-deployment.com/join/python101`) — no login required
+2. Wait on the waiting screen until the lecturer activates a question
 3. Select your answer(s) and submit — you can only submit once
 4. See the live distribution of answers across the class
-5. When the lecturer closes voting, the chart freezes
+5. When the lecturer closes voting, you return to the waiting screen for the next question
 
 ---
 
@@ -169,12 +167,12 @@ Everything in `public/` is served statically and is publicly accessible by filen
 |---|---|---|---|
 | `join-session` | client → server | `{ sessionId }` | Student joins a session room |
 | `session-state` | server → client | `{ question, votes, open, total }` | Current state sent on join |
-| `activate-question` | client → server | `{ question, sessionId, token }` | Teacher activates a question |
-| `question-activated` | server → clients | `{ question, sessionId }` | Broadcast to all students in session |
+| `activate-question` | client → server | `{ question, sessionId, token, title }` | Teacher activates a question |
+| `question-activated` | server → clients | `{ question, sessionId, title }` | Broadcast to all students in session |
 | `submit-answer` | client → server | `{ sessionId, selected: [0, 2] }` | Student submits answer indices |
 | `vote-update` | server → clients | `{ votes, total }` | Broadcast after each new vote |
 | `close-voting` | client → server | `{ sessionId, token }` | Teacher closes voting |
-| `voting-closed` | server → clients | — | Broadcast to freeze student charts |
+| `voting-closed` | server → clients | — | Students return to waiting screen |
 
 ---
 
