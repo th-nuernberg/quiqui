@@ -211,4 +211,4 @@ Contributions are welcome. For significant changes, please open an issue first t
 
 ## License
 
-[MIT](LICENSE)
+[AGPL-3.0](LICENSE)
