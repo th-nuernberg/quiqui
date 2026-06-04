@@ -9,7 +9,6 @@ let selectedIndex = -1;
 let currentSessionId = null;
 let currentTitle = null;
 let sessionExpired = false;
-let joined = 0;
 
 // Slug is the path segment this page was loaded from — used as the teacher token
 const TEACHER_TOKEN = window.location.pathname.replace(/^\//, '').split('/')[0];
@@ -23,13 +22,10 @@ const sectionQuestions = document.getElementById('section-questions');
 const questionList    = document.getElementById('question-list');
 const sectionActive   = document.getElementById('section-active');
 const activeQText     = document.getElementById('active-q-text');
-const badgeLive       = document.getElementById('badge-live');
 const joinInfo        = document.getElementById('join-info');
 const qrImg           = document.getElementById('qr-img');
 const joinUrlEl       = document.getElementById('join-url');
-const liveStats       = document.getElementById('live-stats');
-const statAnswered    = document.getElementById('stat-answered');
-const statJoined      = document.getElementById('stat-joined');
+const statAnsweredBadge = document.getElementById('stat-answered-badge');
 const barChart        = document.getElementById('bar-chart');
 const btnActivate     = document.getElementById('btn-activate');
 const btnClose        = document.getElementById('btn-close');
@@ -144,7 +140,7 @@ function renderQuestionList() {
     item.className = 'q-item';
     item.dataset.index = i;
     item.innerHTML = `
-      <span class="q-text">${mdInline(q.question)}</span>
+      <span class="q-text">${mdInline(previewQuestion(q.question))}</span>
       <span class="q-badge">${q.type === 'multiple' ? 'multi' : 'single'}</span>
     `;
     item.addEventListener('click', () => selectQuestion(i));
@@ -164,9 +160,10 @@ function selectQuestion(index) {
   sectionActive.style.display = '';
 
   // Show preview state — answer options with empty bars, ready to activate
-  liveStats.style.display = 'none';
-  btnActivate.style.display = '';
-  btnClose.style.display = 'none';
+  statAnsweredBadge.textContent = '0 answered';
+  statAnsweredBadge.style.display = '';
+  btnActivate.disabled = false;
+  btnClose.disabled = true;
   btnNext.style.display = selectedIndex < questions.length - 1 ? '' : 'none';
   setStatusBadge(null);
 
@@ -201,17 +198,9 @@ function activateQuestion() {
 
   // Update UI immediately
   setStatusBadge('live');
-  btnActivate.style.display = 'none';
-  btnClose.style.display = '';
+  btnActivate.disabled = true;
+  btnClose.disabled = false;
   btnNext.style.display = selectedIndex < questions.length - 1 ? '' : 'none';
-  liveStats.style.display = '';
-  statAnswered.textContent = '0';
-  statJoined.textContent = '0';
-  joined = 0;
-
-
-  // Init bar chart
-  renderBarChart(selectedQuestion.answers, {}, 0);
 }
 window.activateQuestion = activateQuestion;
 
@@ -220,8 +209,8 @@ function closeVoting() {
   if (!currentSessionId) return;
   socket.emit('close-voting', { sessionId: currentSessionId, token: TEACHER_TOKEN });
   setStatusBadge('closed');
-  btnClose.style.display = 'none';
-  btnActivate.style.display = '';
+  btnClose.disabled = true;
+  btnActivate.disabled = false;
   btnNext.style.display = selectedIndex < questions.length - 1 ? '' : 'none';
 }
 window.closeVoting = closeVoting;
@@ -248,14 +237,14 @@ async function fetchQR(url) {
 // ─── Socket events ────────────────────────────────────────────────────────────
 socket.on('vote-update', ({ votes, total }) => {
   if (!selectedQuestion) return;
-  statAnswered.textContent = total;
+  statAnsweredBadge.textContent = `${total} answered`;
   renderBarChart(selectedQuestion.answers, votes, total);
 });
 
 socket.on('voting-closed', () => {
   setStatusBadge('closed');
-  btnClose.style.display = 'none';
-  btnActivate.style.display = '';
+  btnClose.disabled = true;
+  btnActivate.disabled = false;
   btnNext.style.display = selectedIndex < questions.length - 1 ? '' : 'none';
 });
 
@@ -263,44 +252,33 @@ socket.on('session-expired', () => {
   sessionExpired = true;
   currentSessionId = null;
   setStatusBadge('closed');
-  btnClose.style.display = 'none';
-  btnActivate.style.display = 'none';
+  btnClose.disabled = true;
+  btnActivate.disabled = true;
   btnNext.style.display = 'none';
   setStatus('Session has expired. Pull the repo again to start a new session.', true);
 });
 
 // ─── Bar chart ────────────────────────────────────────────────────────────────
 function renderBarChart(answers, votes, total) {
-  // Build answer blocks on first call (when barChart is empty)
-  if (barChart.children.length !== answers.length) {
-    barChart.innerHTML = '';
-    const keys = ['A', 'B', 'C', 'D', 'E', 'F'];
-    answers.forEach((ans, i) => {
-      const block = document.createElement('div');
-      block.className = 'answer-opt';
-      block.style.cursor = 'default';
-      block.innerHTML = `
-        <div class="opt-key">${keys[i] || i + 1}</div>
-        <div style="flex:1">
-          <div>${mdInline(ans)}</div>
-          <div class="opt-bar-wrap visible" id="t-bar-wrap-${i}">
-            <div class="opt-bar-fill" id="t-bar-fill-${i}" style="width:0%"></div>
-          </div>
-          <div class="opt-bar-pct visible" id="t-bar-pct-${i}">0% (0)</div>
-        </div>
-      `;
-      barChart.appendChild(block);
-    });
-  }
-
-  // Update bar values
-  answers.forEach((_, i) => {
+  barChart.innerHTML = '';
+  const keys = ['A', 'B', 'C', 'D', 'E', 'F'];
+  answers.forEach((ans, i) => {
     const count = (votes && votes[i]) || 0;
     const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-    const fill = document.getElementById(`t-bar-fill-${i}`);
-    const pctEl = document.getElementById(`t-bar-pct-${i}`);
-    if (fill) fill.style.width = pct + '%';
-    if (pctEl) pctEl.textContent = `${pct}% (${count})`;
+    const block = document.createElement('div');
+    block.className = 'answer-opt';
+    block.style.cursor = 'default';
+    block.innerHTML = `
+      <div class="opt-key">${keys[i] || i + 1}</div>
+      <div style="flex:1">
+        <div>${mdInline(ans)}</div>
+        <div class="opt-bar-wrap visible">
+          <div class="opt-bar-fill" style="width:${pct}%"></div>
+        </div>
+        <div class="opt-bar-pct visible">${pct}% (${count})</div>
+      </div>
+    `;
+    barChart.appendChild(block);
   });
 }
 
@@ -326,11 +304,15 @@ document.addEventListener('click', e => {
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function escHtml(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// Inline preview for the question list — collapses multiline, converts $$...$$ to $...$
+function previewQuestion(s) {
+  return s
+    .replace(/```[\s\S]*?```/gs, '')
+    .replace(/\$\$([\s\S]*?)\$\$/gs, (_, m) => `$${m.replace(/\s+/g, ' ').trim()}$`)
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
-// Render Markdown to HTML; inline-only (no wrapping <p>) for single-line strings
 function mdHtml(s) {
   return marked.parse(s);
 }

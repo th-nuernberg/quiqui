@@ -193,27 +193,6 @@ function showScreen(name) {
   screenQuestion.style.display = name === 'question' ? '' : 'none';
 }
 
-// ─── Answer popover ───────────────────────────────────────────────────────────
-
-let popover = null;
-
-function showAnswerPopover(text) {
-  hideAnswerPopover();
-  popover = document.createElement('div');
-  popover.className = 'answer-popover';
-  popover.textContent = text;
-  popover.addEventListener('click', hideAnswerPopover);
-  document.body.appendChild(popover);
-}
-
-function hideAnswerPopover() {
-  if (popover) { popover.remove(); popover = null; }
-}
-
-document.addEventListener('click', e => {
-  if (popover && !popover.contains(e.target)) hideAnswerPopover();
-});
-
 // ─── Session storage — prevent re-submission on refresh ───────────────────────
 
 function answerKey(sessionId, question) {
@@ -233,10 +212,6 @@ function hasAnswered(sessionId, question) {
 function applyTitle(title) {
   document.title = `QuiQui: ${title}`;
   document.getElementById('logo-title').textContent = title;
-}
-
-function escHtml(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function mdHtml(s) {

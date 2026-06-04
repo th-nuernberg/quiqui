@@ -62,18 +62,7 @@
         <div class="active-header">
           <div class="active-question-text" id="active-q-text"></div>
           <span id="status-badge" style="display:none;"></span>
-        </div>
-
-        <!-- Live stats -->
-        <div class="live-stats" id="live-stats" style="display:none;">
-          <div class="stat-card">
-            <div class="stat-num" id="stat-answered">0</div>
-            <div class="stat-label">answered</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-num" id="stat-joined">0</div>
-            <div class="stat-label">joined</div>
-          </div>
+          <span id="stat-answered-badge" style="display:none;" class="badge-live"></span>
         </div>
 
         <!-- Bar chart -->
@@ -87,7 +76,7 @@
         <!-- Controls -->
         <div class="btn-row">
           <button class="btn-primary" id="btn-activate" onclick="activateQuestion()">Activate</button>
-          <button class="btn-secondary" id="btn-close" style="display:none;" onclick="closeVoting()">Close voting</button>
+          <button class="btn-secondary" id="btn-close" onclick="closeVoting()">Close voting</button>
           <button class="btn-secondary" id="btn-next" style="display:none;" onclick="nextQuestion()">Next question →</button>
         </div>
       </section>
