@@ -2,7 +2,7 @@
 
 A lightweight live audience response tool for university lectures. The lecturer poses an activating question, students answer on their own devices, and the class sees a live bar chart of the distribution — no correct answer revealed, just a moment for discussion.
 
-> Inspired by Slido and Mentimeter, but deliberately minimal: no accounts, no app installs, no scoring.
+> Deliberately minimal: no accounts, no app installs, no scoring. Requires just a github repo with your questions in yaml.
 
 **→ [Quickstart guide for lecturers](QUICKSTART.md)** — get up and running in 5 minutes.
 
@@ -28,13 +28,10 @@ A lightweight live audience response tool for university lectures. The lecturer 
 
 > **Lecturer?** See the [Quickstart guide](QUICKSTART.md) for a step-by-step walkthrough with screenshots.
 
-
 ### Prerequisites
 
 - Node.js 18 or later
 - A public GitHub repository containing your question YAML files (see [albrechtje/quiqui-questions](https://github.com/albrechtje/quiqui-questions))
-
-### Installation
 
 ```bash
 git clone https://github.com/albrechtje/quiqui.git
@@ -95,10 +92,13 @@ quiqui/
 ├── package.json
 ├── .env.example            # Documents required environment variables
 └── public/                 # Served statically (no auth required)
+    ├── index.html          # Landing page
     ├── student.html        # Student view
+    ├── privacy.html        # Privacy policy (DE/EN)
     ├── style.css           # Shared styles
     ├── teacher.js          # Teacher frontend logic
-    └── student.js          # Student frontend logic
+    ├── student.js          # Student frontend logic
+    └── quiqui-logo.png     # Logo
 ```
 
 **Why `start.sh`?** Node.js inherits the shell environment, which can include variables like `PAGER` or credential helpers that cause git to hang or throw security errors when cloning. `start.sh` sets `GIT_TERMINAL_PROMPT=0`, `GIT_ASKPASS=true`, and `GIT_PAGER=cat` to give git a clean, non-interactive environment. `npm start` and `npm run dev` call it automatically.

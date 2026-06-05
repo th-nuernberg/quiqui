@@ -18,8 +18,9 @@ QuiQui lets you pose a question to your class and see live answers on screen —
 1. **Set up your question repo** on GitHub with a `config.yaml` and one `.yaml` file per lecture topic
 2. **Bookmark your teacher URL:**
    ```
-   https://quiqui.on-some-domain.com/<teacher-url>?repo=https://github.com/you/quiqui-questions
+   https://quiqui-x9um.onrender.com/<teacher-slug>?repo=https://github.com/you/quiqui-questions
    ```
+   Contact the hosted service operator to receive your teacher slug.
 3. **Put the student QR code or URL in your slides** — it never changes as long as `session_url` in `config.yaml` stays the same
 
 ---
@@ -31,8 +32,8 @@ QuiQui lets you pose a question to your class and see live answers on screen —
 1. **Open your bookmarked teacher URL** — the repo is pulled automatically and the QR code appears
 2. **Project the QR code** so students can join (or share the URL verbally)
 3. **Select a lecture file** from the dropdown, then click a question to preview it
-4. **Click Activate** — voting opens and the bar chart updates live as students answer
-5. **Click Close voting** when done — students return to the waiting screen
+4. **Click Activate** — voting opens and the bar chart updates live under each answer
+5. **Click Close voting** when done — students return to the waiting screen (the button is always visible next to Activate; only one is enabled at a time)
 6. **Click Next question →** to move on, or pick any question from the list
 
 > **Tip:** Open the teacher page a minute before class — the app may take ~30 seconds to wake up on the free Render plan.
@@ -43,7 +44,9 @@ QuiQui lets you pose a question to your class and see live answers on screen —
 
 ![Student View](public/student-view.png)
 
-Students visit the join URL or scan the QR code — no login, no app install. They wait on a holding screen until you activate a question, submit their answer once, and see the live results. When you close voting they return to the waiting screen automatically.
+Students visit the join URL or scan the QR code — no login, no app install. They see "Waiting for the lecturer" until you activate a question. After submitting their answer (only once per question), the result bars appear live under each answer option. When you close voting they return to the waiting screen automatically.
+
+If a student refreshes the page after submitting, they see the question with bars but cannot submit again.
 
 ---
 
