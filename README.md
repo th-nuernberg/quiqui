@@ -15,7 +15,8 @@ A lightweight live audience response tool for university lectures. The lecturer 
 - **Teacher-paced** — the lecturer controls which question is active; students cannot browse ahead
 - **No student login** — students join by scanning a QR code or visiting a URL
 - **Live results** — bar chart updates in real time as students submit
-- **Show answer** — teacher can reveal correct answers at any time; correct options are highlighted in green for everyone in the room
+- **Four-state flow** — Activate → Deactivate (bars, no highlights) → Reveal (correct answers highlighted) → Close (students return to waiting screen)
+- **Reveal answer** — teacher reveals correct answers; correct options are highlighted in green for everyone in the room
 - **Single and multiple choice** — per-question type configured in YAML
 - **Markdown and LaTeX** — question text and answers support code blocks, inline code, and math expressions
 - **Questions in Git** — question files live in a public GitHub repo; no admin interface needed
@@ -114,16 +115,18 @@ Everything in `public/` is served statically and is publicly accessible by filen
 | Event | Direction | Payload | Description |
 |---|---|---|---|
 | `join-session` | client → server | `{ sessionId }` | Student joins a session room |
-| `session-state` | server → client | `{ exists, question, votes, open, total, title, answersRevealed, correctIndices }` | Current state sent on join |
-| `session-created` | server → clients | — | Emitted when a teacher pulls a repo; updates waiting students |
-| `activate-question` | client → server | `{ question, sessionId, token, title }` | Teacher activates a question |
-| `question-activated` | server → clients | `{ question, sessionId, title }` | Broadcast to all students in session |
+| `session-state` | server → client | `{ exists, question, votes, open, total, title, answersRevealed, deactivated, correctIndices }` | Current state sent on join |
+| `session-created` | server → clients | `{ title }` | Emitted when a teacher pulls a repo; updates waiting students |
+| `activate-question` | client → server | `{ question, sessionId, token, title }` | Teacher activates a question; re-activating the same question preserves votes |
+| `question-activated` | server → clients | `{ question, votes, total, title }` | Broadcast to all students; includes current vote counts for re-activate |
 | `submit-answer` | client → server | `{ sessionId, selected: [0, 2] }` | Student submits answer indices |
 | `vote-update` | server → clients | `{ votes, total }` | Broadcast after each new vote |
-| `show-answer` | client → server | `{ sessionId, token }` | Teacher reveals correct answers (closes voting implicitly) |
-| `answer-revealed` | server → clients | `{ correctIndices, votes, total }` | Correct answer indices broadcast to all; students see green highlights |
-| `close-voting` | client → server | `{ sessionId, token }` | Teacher closes voting without revealing answers |
-| `voting-closed` | server → clients | — | Students return to waiting screen |
+| `deactivate-question` | client → server | `{ sessionId, token }` | Teacher pauses voting; students see bars without highlights |
+| `question-deactivated` | server → clients | `{ votes, total }` | Students see result bars; submit disabled |
+| `show-answer` | client → server | `{ sessionId, token }` | Teacher reveals correct answers |
+| `answer-revealed` | server → clients | `{ correctIndices, votes, total }` | Students see green highlights on correct options |
+| `close-question` | client → server | `{ sessionId, token }` | Teacher sends students back to waiting screen |
+| `question-closed` | server → clients | — | Students return to waiting screen; active question cleared |
 | `session-expired` | server → clients | — | Session timed out; teacher UI locked, students see "no session" message |
 
 ---
@@ -134,7 +137,7 @@ QuiQui uses a shared-secret approach suited for lecture deployments:
 
 - **Teacher page** is only reachable at `/:teacherSlug` — the HTML file is not accessible as a static asset
 - **Teacher API endpoints** (`/api/pull`, `/api/questions`, `/api/qr`, `/api/session`) require an `X-Teacher-Token` header matching the slug
-- **Teacher socket events** (`activate-question`, `close-voting`, `show-answer`) require a `token` field matching the slug
+- **Teacher socket events** (`activate-question`, `deactivate-question`, `show-answer`, `close-question`) require a `token` field matching the slug
 - **Student endpoints** (`/join/:sessionId`, socket events) are intentionally open — no login required
 - **Only public GitHub repos** are accepted — `file://` and `ssh://` URLs are rejected; repo size is checked via the GitHub API before cloning
 
