@@ -174,6 +174,21 @@ select:focus {
 }
 .btn-secondary:hover { background: var(--color-bg-secondary); }
 
+.btn-light {
+  background: var(--color-accent-light);
+  color: var(--color-accent-dark);
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-family: var(--font);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-light:hover { background: #cde3f7; }
+.btn-light:disabled { opacity: 0.4; cursor: default; }
+
 .btn-full { width: 100%; padding: 12px; font-size: 15px; }
 
 .btn-row {
@@ -528,4 +543,47 @@ select:focus {
   color: var(--color-text-hint);
   padding: 6px;
   border-top: 0.5px solid var(--color-border);
+}
+
+/* ─── Mobile / tablet ──────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .page-wrap { padding: 0 0.75rem 2rem; }
+
+  /* Larger touch targets for all buttons */
+  .btn-primary, .btn-secondary, .btn-light {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 15px;
+  }
+
+  /* Button row wraps and each button fills the row */
+  .btn-row {
+    flex-wrap: wrap;
+  }
+  .btn-row > button {
+    flex: 1 1 auto;
+    min-width: calc(50% - 4px);
+  }
+
+  /* Repo input + pull button stack vertically */
+  .file-row {
+    flex-wrap: wrap;
+  }
+  .file-row input[type="text"] {
+    min-width: 0;
+  }
+
+  /* QR code row stacks on very small screens */
+  .join-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  /* Active question header stacks badge below text */
+  .active-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 }

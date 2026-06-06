@@ -49,18 +49,25 @@ socket.on('session-state', ({ exists, question, open, title, answersRevealed, de
     if (answersRevealed) highlightCorrect(correctIndices);
   } else {
     document.getElementById('waiting-msg').innerHTML = exists
-      ? 'Waiting for the lecturer<span class="dot-anim"></span>'
+      ? 'Waiting for the next question<span class="dot-anim"></span>'
       : 'No quiz session active at this URL.';
   }
 });
 
 // Teacher pushes a new question
-socket.on('question-activated', ({ question, title }) => {
+socket.on('question-activated', ({ question, votes, total, title }) => {
   if (title) applyTitle(title);
-  submitted = false;
-  selected = [];
-  sessionStorage.removeItem(answerKey(getSessionId(), question.question));
+  const sameQuestion = currentQuestion && currentQuestion.question === question.question;
+  if (!sameQuestion) {
+    submitted = false;
+    selected = [];
+    sessionStorage.removeItem(answerKey(getSessionId(), question.question));
+  }
   showQuestion(question);
+  if (sameQuestion && submitted && votes) {
+    showInlineBars();
+    updateInlineBars(votes, total);
+  }
 });
 
 // New vote came in
@@ -117,7 +124,7 @@ socket.on('session-expired', () => {
 socket.on('session-created', ({ title }) => {
   if (title) applyTitle(title);
   if (!currentQuestion) {
-    document.getElementById('waiting-msg').innerHTML = 'Waiting for the lecturer<span class="dot-anim"></span>';
+    document.getElementById('waiting-msg').innerHTML = 'Waiting for the next question<span class="dot-anim"></span>';
   }
 });
 

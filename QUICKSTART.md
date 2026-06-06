@@ -32,10 +32,12 @@ QuiQui lets you pose a question to your class and see live answers on screen —
 1. **Open your bookmarked teacher URL** — the repo is pulled automatically and the QR code appears
 2. **Project the QR code** so students can join (or share the URL verbally)
 3. **Select a lecture file** from the dropdown, then click a question to preview it
-4. **Click Activate** — voting opens; the badge in the top-right changes to **● Live**
-5. **Click Show answer** at any time to reveal the correct answers — voting closes implicitly and the correct options are highlighted in green for everyone in the room
-6. **Click Close voting** to end voting without revealing answers — students return to the waiting screen
-7. **Click Next question →** or pick any question from the list — voting closes automatically and students return to the waiting screen
+4. **Click ▶ Activate** — voting opens; badge shows **● Active**. Click again (**⏹ Deactivate**) to stop voting without revealing answers — students see the result bars but no highlights
+5. **Click ✓ Reveal** to show the correct answers highlighted in green for everyone in the room
+6. **Click ✕ Close** to send students back to the waiting screen without revealing answers
+7. **Click Next question →** to move on — students return to the waiting screen automatically
+
+> **Happy path:** Activate → (students vote) → Reveal → Close → Next question →
 
 > **Tip:** Open the teacher page a minute before class — the app may take ~30 seconds to wake up on the free Render plan.
 
@@ -45,11 +47,13 @@ QuiQui lets you pose a question to your class and see live answers on screen —
 
 ![Student View](public/student-view.png)
 
-Students visit the join URL or scan the QR code — no login, no app install. They see "Waiting for the lecturer" until you activate a question. After submitting their answer (only once per question), the result bars appear live under each answer option. When you close voting they return to the waiting screen automatically.
+Students visit the join URL or scan the QR code — no login, no app install. They see "Waiting for the next question" until you activate a question. After submitting their answer (only once per question), the result bars appear live under each answer option.
 
-If a student hasn't voted when you click **Show answer** or **Close voting**, they see "Voting has ended." and the bars — but cannot submit.
+- **Deactivate** — students see the bars without correct answer highlights
+- **Reveal** — correct answers highlighted in green for everyone
+- **Close** — students return to the waiting screen
 
-If a student refreshes the page after submitting, they see the question with bars but cannot submit again.
+If a student hasn't voted when you deactivate or reveal, they see "Voting has ended." and the bars — but cannot submit. If a student refreshes after submitting, they see the question with bars but cannot submit again.
 
 ---
 

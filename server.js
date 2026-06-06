@@ -509,7 +509,7 @@ io.on('connection', (socket) => {
 
     // Strip teacher-only fields before broadcasting to students
     const { correct, explanation, ...studentQuestion } = question;
-    io.to(`session:${sessionId}`).emit('question-activated', { question: studentQuestion, sessionId, title: s.title });
+    io.to(`session:${sessionId}`).emit('question-activated', { question: studentQuestion, sessionId, title: s.title, votes: s.votes, total: s.voters.size });
   });
 
   // Teacher deactivates — voting closes, students see bars without highlights

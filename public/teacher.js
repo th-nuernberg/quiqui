@@ -10,6 +10,9 @@ let currentSessionId = null;
 let currentTitle = null;
 let sessionExpired = false;
 let revealedCorrectIndices = [];
+let currentVotes = {};
+let currentTotal = 0;
+let currentState = 'inactive';
 
 // Slug is the path segment this page was loaded from — used as the teacher token
 const TEACHER_TOKEN = window.location.pathname.replace(/^\//, '').split('/')[0];
@@ -134,6 +137,7 @@ async function loadFile() {
     renderQuestionList();
     sectionQuestions.style.display = '';
     sectionActive.style.display = 'none';
+    questionList.firstElementChild?.focus();
   } catch (err) {
     setStatus('Error loading file: ' + err.message, true);
   }
@@ -146,11 +150,17 @@ function renderQuestionList() {
     const item = document.createElement('div');
     item.className = 'q-item';
     item.dataset.index = i;
+    item.tabIndex = 0;
     item.innerHTML = `
       <span class="q-text">${mdInline(previewQuestion(q.question))}</span>
       <span class="q-badge">${q.type === 'multiple' ? 'multi' : 'single'}</span>
     `;
     item.addEventListener('click', () => selectQuestion(i));
+    item.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectQuestion(i); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); item.nextElementSibling?.focus(); }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); item.previousElementSibling?.focus(); }
+    });
     questionList.appendChild(item);
   });
 }
@@ -160,6 +170,9 @@ function selectQuestion(index) {
   selectedIndex = index;
   selectedQuestion = questions[index];
   revealedCorrectIndices = [];
+  currentVotes = {};
+  currentTotal = 0;
+  currentState = 'inactive';
 
   document.querySelectorAll('.q-item').forEach((el, i) => {
     el.classList.toggle('active-q', i === index);
@@ -185,6 +198,7 @@ function selectQuestion(index) {
 
   renderBarChart(selectedQuestion.answers, {}, 0);
   sectionActive.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  btnActivate.focus();
 }
 
 // ─── State machine ────────────────────────────────────────────────────────────
@@ -196,9 +210,10 @@ function selectQuestion(index) {
 // 'closed'      — students on waiting screen, activeQuestion cleared
 
 function setState(state) {
+  currentState = state;
   const labels = {
     inactive:    '◌ Inactive',
-    active:      '● Live',
+    active:      '● Active',
     deactivated: '◼ Deactivated',
     revealed:    '◼ Revealed',
     closed:      '◼ Closed',
@@ -210,37 +225,42 @@ function setState(state) {
 
   // Activate button toggles label based on state
   btnActivate.textContent = state === 'active' ? '⏹ Deactivate' : '▶ Activate';
-  btnActivate.className   = state === 'active' ? 'btn-secondary' : 'btn-primary';
 
-  // disabled=true per state:
-  //               Activate  Reveal  Close
-  // inactive          ✗       ✓      ✓
-  // active            ✗       ✗      ✗
-  // deactivated       ✗       ✗      ✗
-  // revealed          ✗       ✓      ✗
-  // closed            ✗       ✓      ✓
+  // Button styles and disabled state per state:
+  // strong blue = btn-primary, light blue = btn-light, white = btn-secondary (disabled)
+  //               Activate       Reveal         Close
+  // inactive      strong         white(off)     white(off)
+  // active        light          strong         light
+  // deactivated   light          strong         light
+  // revealed      light          white(off)     strong
+  // closed        strong         white(off)     white(off)
   const cfg = {
-    inactive:    { activate: false, reveal: true,  close: true  },
-    active:      { activate: false, reveal: false, close: false },
-    deactivated: { activate: false, reveal: false, close: false },
-    revealed:    { activate: false, reveal: true,  close: false },
-    closed:      { activate: false, reveal: true,  close: true  },
+    inactive:    { activate: ['btn-primary', false], reveal: ['btn-secondary', true],  close: ['btn-secondary', true],  next: false },
+    active:      { activate: ['btn-light',   false], reveal: ['btn-primary',   false], close: ['btn-light',     false], next: false },
+    deactivated: { activate: ['btn-light',   false], reveal: ['btn-primary',   false], close: ['btn-light',     false], next: false },
+    revealed:    { activate: ['btn-light',   false], reveal: ['btn-secondary', true],  close: ['btn-primary',   false], next: false },
+    closed:      { activate: [currentTotal > 0 ? 'btn-light' : 'btn-primary', false], reveal: ['btn-secondary', true], close: ['btn-secondary', true], next: currentTotal > 0 },
   }[state];
-  btnActivate.disabled   = cfg.activate;
-  btnShowAnswer.disabled = cfg.reveal;
-  btnClose.disabled      = cfg.close;
-  updateNextBtn();
+  [btnActivate, btnShowAnswer, btnClose].forEach((btn, i) => {
+    const key = ['activate', 'reveal', 'close'][i];
+    btn.className = cfg[key][0];
+    btn.disabled  = cfg[key][1];
+  });
+  updateNextBtn(cfg.next);
+  const primary = cfg.next ? btnNext : [btnActivate, btnShowAnswer, btnClose].find((btn, i) => cfg[['activate','reveal','close'][i]][0] === 'btn-primary');
+  if (primary) primary.focus();
 }
 
-function updateNextBtn() {
-  btnNext.style.display = selectedIndex < questions.length - 1 ? '' : 'none';
+function updateNextBtn(strong = false) {
+  const visible = selectedIndex < questions.length - 1;
+  btnNext.style.display = visible ? '' : 'none';
+  if (visible) btnNext.className = strong ? 'btn-primary' : 'btn-light';
 }
 
 // ─── Activate / Deactivate toggle ─────────────────────────────────────────────
 function activateQuestion() {
   if (!selectedQuestion || sessionExpired) return;
-  if (btnActivate.textContent.startsWith('⏹')) {
-    // Currently active — deactivate
+  if (currentState === 'active') {
     socket.emit('deactivate-question', { sessionId: currentSessionId, token: TEACHER_TOKEN });
   } else {
     socket.emit('activate-question', {
@@ -249,6 +269,8 @@ function activateQuestion() {
       token: TEACHER_TOKEN,
       title: currentTitle,
     });
+    revealedCorrectIndices = [];
+    renderBarChart(selectedQuestion.answers, currentVotes, currentTotal, []);
     setState('active');
   }
 }
@@ -299,12 +321,16 @@ socket.on('disconnect', () => {
 // ─── Socket events ────────────────────────────────────────────────────────────
 socket.on('vote-update', ({ votes, total }) => {
   if (!selectedQuestion) return;
+  currentVotes = votes;
+  currentTotal = total;
   statAnsweredBadge.textContent = `${total} answered`;
   renderBarChart(selectedQuestion.answers, votes, total, revealedCorrectIndices);
 });
 
 socket.on('question-deactivated', ({ votes, total }) => {
   if (!selectedQuestion) return;
+  currentVotes = votes;
+  currentTotal = total;
   statAnsweredBadge.textContent = `${total} answered`;
   renderBarChart(selectedQuestion.answers, votes, total, []);
   setState('deactivated');
@@ -312,6 +338,8 @@ socket.on('question-deactivated', ({ votes, total }) => {
 
 socket.on('answer-revealed', ({ correctIndices, votes, total }) => {
   if (!selectedQuestion) return;
+  currentVotes = votes;
+  currentTotal = total;
   revealedCorrectIndices = correctIndices;
   statAnsweredBadge.textContent = `${total} answered`;
   renderBarChart(selectedQuestion.answers, votes, total, correctIndices);
