@@ -21,7 +21,8 @@ QuiQui lets you pose a question to your class and see live answers on screen —
    https://quiqui-x9um.onrender.com/<teacher-slug>?repo=https://github.com/you/quiqui-questions
    ```
    Contact the hosted service operator to receive your teacher slug.
-3. **Put the student QR code or URL in your slides** — it never changes as long as `session_url` in `config.yaml` stays the same
+3. **Put the student QR code or URL in your slides** — it never changes as long as `session_url` in `config.yaml` stays the same. Choose a unique name that includes your organisation or course (e.g. `tum-python101`) — generic names like `demo` will conflict if another lecturer uses the same name on the same server
+4. **Optionally bookmark the presenter URL** (`/view/<session_url>`) to open in your browser during the lecture — it shows the live question and results on your beamer alongside the QR code
 
 ---
 
@@ -57,11 +58,25 @@ If a student hasn't voted when you deactivate or reveal, they see "Voting has en
 
 ---
 
+## Presenter view (beamer)
+
+Open `/view/<session_url>` in your browser and project it on the beamer. It shows the same question and live result bars as the student view, plus the QR code and join URL — so students can scan at any time. No submit button, no interaction needed.
+
+The presenter URL is shown in the teacher view next to the student join URL as soon as a repo is pulled. If your organisation doesn't allow browser add-ins in PowerPoint, this is the recommended way to display live results during a presentation.
+
+---
+
 ## Adding or editing questions
 
 Edit the `.yaml` files in your GitHub repo and click **Pull latest** in the teacher view to reload. No server restart needed.
 
 Questions support plain text, **Markdown** (inline code, code blocks), and **LaTeX** math (`$...$` inline, `$$...$$` display). See the [question repo README](https://github.com/albrechtje/quiqui-questions) for the full format reference.
+
+### Two ways to use QuiQui
+
+**With correct answers in the YAML** — include a `correct` field. The **✓ Reveal** button highlights the right option(s) in green for everyone in the room.
+
+**Generic / slide-based** — omit `correct` and keep your question text in your slides. QuiQui collects votes and shows the live bar chart; the Reveal button is hidden automatically. Each answer option is labelled with a letter badge (A, B, C, …), so students just call out or click the letter they see on the slide. The [question repo](https://github.com/albrechtje/quiqui-questions) includes a ready-made `lecture7-generic.yaml` with templates for A/B/C/D, Yes/No, True/False, and a 5-point agreement scale — load it once and reuse it throughout your lecture.
 
 ---
 

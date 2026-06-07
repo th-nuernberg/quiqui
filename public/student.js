@@ -6,6 +6,7 @@ const socket = io();
 let currentQuestion = null;
 let selected = [];       // indices of selected answer(s)
 let submitted = false;
+let currentSessionToken = null;
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const screenWaiting   = document.getElementById('screen-waiting');
@@ -33,7 +34,8 @@ function getSessionId() {
 // ─── Socket events ────────────────────────────────────────────────────────────
 
 // Initial state when joining
-socket.on('session-state', ({ exists, question, open, title, answersRevealed, deactivated, correctIndices }) => {
+socket.on('session-state', ({ exists, question, open, title, answersRevealed, deactivated, correctIndices, sessionToken }) => {
+  if (sessionToken) currentSessionToken = sessionToken;
   if (title) applyTitle(title);
   if (question && (open || deactivated || answersRevealed)) {
     showQuestion(question);
@@ -55,13 +57,14 @@ socket.on('session-state', ({ exists, question, open, title, answersRevealed, de
 });
 
 // Teacher pushes a new question
-socket.on('question-activated', ({ question, votes, total, title }) => {
+socket.on('question-activated', ({ question, votes, total, title, sessionToken }) => {
+  if (sessionToken) currentSessionToken = sessionToken;
   if (title) applyTitle(title);
   const sameQuestion = currentQuestion && currentQuestion.question === question.question;
   if (!sameQuestion) {
     submitted = false;
     selected = [];
-    sessionStorage.removeItem(answerKey(getSessionId(), question.question));
+    sessionStorage.removeItem(answerKey(question.question));
   }
   showQuestion(question);
   if (sameQuestion && submitted && votes) {
@@ -121,7 +124,8 @@ socket.on('session-expired', () => {
 });
 
 // Teacher pulled a new repo — update message for students already on the waiting screen
-socket.on('session-created', ({ title }) => {
+socket.on('session-created', ({ title, sessionToken }) => {
+  if (sessionToken) currentSessionToken = sessionToken;
   if (title) applyTitle(title);
   if (!currentQuestion) {
     document.getElementById('waiting-msg').innerHTML = 'Waiting for the next question';
@@ -131,7 +135,7 @@ socket.on('session-created', ({ title }) => {
 // ─── Show question ────────────────────────────────────────────────────────────
 function showQuestion(question) {
   const sessionId = getSessionId();
-  if (hasAnswered(sessionId, question.question)) {
+  if (hasAnswered(question.question)) {
     // Already submitted — render question with bars visible but locked
     currentQuestion = question;
     submitted = true;
@@ -199,7 +203,7 @@ function submitAnswer() {
   btnSubmit.disabled = true;
 
   const sessionId = getSessionId();
-  markAnswered(sessionId, currentQuestion.question);
+  markAnswered(currentQuestion.question);
   socket.emit('submit-answer', { sessionId, selected });
 
   // Reveal bars immediately — they start at 0% and animate in on first vote-update
@@ -247,17 +251,17 @@ function showScreen(name) {
 
 // ─── Session storage — prevent re-submission on refresh ───────────────────────
 
-function answerKey(sessionId, question) {
-  // Short key from sessionId + first 40 chars of question text
-  return `answered:${sessionId}:${question.slice(0, 40)}`;
+function answerKey(question) {
+  const token = currentSessionToken || getSessionId();
+  return `answered:${token}:${question.slice(0, 40)}`;
 }
 
-function markAnswered(sessionId, question) {
-  sessionStorage.setItem(answerKey(sessionId, question), '1');
+function markAnswered(question) {
+  sessionStorage.setItem(answerKey(question), '1');
 }
 
-function hasAnswered(sessionId, question) {
-  return sessionStorage.getItem(answerKey(sessionId, question)) === '1';
+function hasAnswered(question) {
+  return sessionStorage.getItem(answerKey(question)) === '1';
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

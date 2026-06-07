@@ -15,6 +15,12 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+const LOG_LEVEL = (process.env.LOG_LEVEL || 'INFO').toUpperCase();
+const log = {
+  info:  (...args) => { if (LOG_LEVEL === 'INFO')  console.log( `[${new Date().toISOString().slice(0, 19)}Z] INFO `, ...args); },
+  error: (...args) => {                             console.error(`[${new Date().toISOString().slice(0, 19)}Z] ERROR`, ...args); },
+};
+
 const PORT = process.env.PORT || 3000;
 const TEACHER_SLUG = process.env.TEACHER_SLUG || 'teach';
 const SESSIONS_DIR = path.join(__dirname, 'tmp', 'sessions');
@@ -89,10 +95,9 @@ function validateQuestions(questions, file) {
     if (q.answers.some(a => typeof a !== 'string' || !a.trim()))
       return `${label}: every answer must be a non-empty string.`;
 
-    // Validate correct field
+    // Validate correct field (optional — omit for generic/unscored questions)
     const letters = Array.isArray(q.correct) ? q.correct : (q.correct != null ? [q.correct] : []);
-    if (letters.length === 0)
-      return `${label}: "correct" is required — provide the correct answer letter(s), e.g. correct: B`;
+    if (letters.length === 0) continue;
     for (const l of letters) {
       const ch = String(l).trim()[0]?.toLowerCase();
       if (!ch || !VALID_LETTERS.has(ch))
@@ -149,6 +154,11 @@ app.get(`/${TEACHER_SLUG}`, (req, res) => {
 // Student join page
 app.get('/join/:sessionId', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'student.html'));
+});
+
+// Projector view — read-only, shows QR + live results, optimised for beamer
+app.get('/view/:sessionId', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'projector.html'));
 });
 
 // Legal pages
@@ -346,9 +356,11 @@ app.post('/api/pull', requireTeacher, async (req, res) => {
     }
 
     // Register or refresh the session entry (no active question yet)
+    const sessionToken = crypto.randomBytes(4).toString('hex'); // fresh on every pull
     if (!existing) {
       sessions.set(sessionId, {
         sessionId,
+        sessionToken,
         repoUrl: repo,
         questionsDir,
         activeQuestion: null,
@@ -359,14 +371,21 @@ app.post('/api/pull', requireTeacher, async (req, res) => {
         answersRevealed: false,
         lastActivity: Date.now(),
       });
+      log.info(`Session '${sessionId}' started`);
+      log.info(`  repo=${repo}`);
       // Notify any students already waiting at this URL
-      io.to(`session:${sessionId}`).emit('session-created', { title: config.title || null });
+      io.to(`session:${sessionId}`).emit('session-created', { title: config.title || null, sessionToken });
     } else {
-      // Same repo pulled again — refresh directory and activity
+      log.info(`Session '${sessionId}' refreshed`);
+      log.info(`  repo=${repo}`);
+      // Same repo pulled again — new token clears prior student submissions
+      existing.sessionToken = sessionToken;
       existing.questionsDir = questionsDir;
       existing.title = config.title || null;
       existing.answersRevealed = false;
       existing.lastActivity = Date.now();
+      // Notify students of the new token so their sessionStorage keys are invalidated
+      io.to(`session:${sessionId}`).emit('session-created', { title: config.title || null, sessionToken });
     }
 
     // List .yaml / .yml files (excluding config.yaml)
@@ -377,7 +396,7 @@ app.post('/api/pull', requireTeacher, async (req, res) => {
 
     res.json({ files, config, sessionId });
   } catch (err) {
-    console.error('Pull failed:', err.message);
+    log.error('Pull failed:', err.message);
     const msg = err.message.includes('timed out') ? err.message
       : err.message.includes('Repository not found') || err.message.includes('not found') ? 'Repository not found. Check the URL and make sure it is public.'
       : err.message.includes('Authentication failed') || err.message.includes('could not read Username') ? 'Repository is private or requires authentication. Only public repositories are supported.'
@@ -415,10 +434,27 @@ app.get('/api/questions', requireTeacher, async (req, res) => {
   }
 });
 
-// Generate QR code for a URL
+// Generate QR code for a URL (teacher-only)
 app.get('/api/qr', requireTeacher, async (req, res) => {
   const { url } = req.query;
   if (!url) return res.status(400).json({ error: 'url is required' });
+  try {
+    const dataUrl = await QRCode.toDataURL(url, { width: 200, margin: 1 });
+    res.json({ dataUrl });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Generate QR code for a URL (public — used by projector view)
+app.get('/api/qr-public', async (req, res) => {
+  const { url } = req.query;
+  if (!url) return res.status(400).json({ error: 'url is required' });
+  // Only allow generating QR codes for join URLs on this same origin
+  const joinPattern = /^\/join\/[a-zA-Z0-9_-]+$/;
+  let pathname;
+  try { pathname = new URL(url).pathname; } catch { return res.status(400).json({ error: 'invalid url' }); }
+  if (!joinPattern.test(pathname)) return res.status(403).json({ error: 'only join URLs are allowed' });
   try {
     const dataUrl = await QRCode.toDataURL(url, { width: 200, margin: 1 });
     res.json({ dataUrl });
@@ -455,7 +491,7 @@ function expireSession(sessionId) {
   // Clean up cloned files
   fs.promises.rm(s.questionsDir, { recursive: true, force: true }).catch(() => {});
   sessions.delete(sessionId);
-  console.log(`Session ${sessionId} expired.`);
+  log.info(`Session expired  session=${sessionId}`);
 }
 
 // ─── Socket.io ────────────────────────────────────────────────────────────────
@@ -480,9 +516,10 @@ io.on('connection', (socket) => {
         answersRevealed: s.answersRevealed,
         deactivated: !s.open && !s.answersRevealed,
         correctIndices,
+        sessionToken: s.sessionToken,
       });
     } else {
-      socket.emit('session-state', { exists: !!s, question: null, votes: null, open: false, total: 0, title: s ? s.title || null : null, answersRevealed: false, deactivated: false, correctIndices: [] });
+      socket.emit('session-state', { exists: !!s, question: null, votes: null, open: false, total: 0, title: s ? s.title || null : null, answersRevealed: false, deactivated: false, correctIndices: [], sessionToken: s ? s.sessionToken : null });
     }
   });
 
@@ -509,7 +546,7 @@ io.on('connection', (socket) => {
 
     // Strip teacher-only fields before broadcasting to students
     const { correct, explanation, ...studentQuestion } = question;
-    io.to(`session:${sessionId}`).emit('question-activated', { question: studentQuestion, sessionId, title: s.title, votes: s.votes, total: s.voters.size });
+    io.to(`session:${sessionId}`).emit('question-activated', { question: studentQuestion, sessionId, title: s.title, votes: s.votes, total: s.voters.size, sessionToken: s.sessionToken });
   });
 
   // Teacher deactivates — voting closes, students see bars without highlights
@@ -570,6 +607,6 @@ io.on('connection', (socket) => {
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 server.listen(PORT, () => {
-  console.log(`QuiQui running on http://localhost:${PORT}`);
-  console.log(`Teacher page: http://localhost:${PORT}/${TEACHER_SLUG}`);
+  log.info(`QuiQui running on http://localhost:${PORT}`);
+  log.info(`Teacher page: http://localhost:${PORT}/${TEACHER_SLUG}`);
 });

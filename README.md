@@ -20,7 +20,7 @@ A lightweight live audience response tool for university lectures. The lecturer 
 - **Single and multiple choice** — per-question type configured in YAML
 - **Markdown and LaTeX** — question text and answers support code blocks, inline code, and math expressions
 - **Questions in Git** — question files live in a public GitHub repo; no admin interface needed
-- **Multiple concurrent sessions** — each repo's `session_url` defines an independent session
+- **Multiple concurrent sessions** — each repo's `session_url` defines an independent session; the URL must be unique per lecturer (e.g. `tum-python101`), as two sessions with the same `session_url` from different repos cannot coexist
 - **No database** — all session state is in memory and intentionally ephemeral
 - **No build step** — vanilla HTML/CSS/JS frontend, deploy anywhere Node.js runs
 

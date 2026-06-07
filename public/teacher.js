@@ -93,6 +93,10 @@ async function pullRepo() {
     const joinUrl = `${location.origin}/join/${currentSessionId}`;
     joinUrlEl.textContent = joinUrl;
     joinUrlEl.href = joinUrl;
+    const presenterUrl = `${location.origin}/view/${currentSessionId}`;
+    const presenterUrlEl = document.getElementById('presenter-url');
+    presenterUrlEl.textContent = presenterUrl;
+    presenterUrlEl.href = presenterUrl;
     joinInfo.style.display = '';
     fetchQR(joinUrl);
 
@@ -187,10 +191,14 @@ function selectQuestion(index) {
 
   if (selectedQuestion.explanation) {
     const correct = selectedQuestion.correct;
-    const letters = (Array.isArray(correct) ? correct : [correct])
-      .map(l => String(l).trim()[0].toUpperCase())
-      .join(', ');
-    explanationEl.textContent = `${letters}: ${selectedQuestion.explanation}`;
+    if (correct != null) {
+      const letters = (Array.isArray(correct) ? correct : [correct])
+        .map(l => String(l).trim()[0].toUpperCase())
+        .join(', ');
+      explanationEl.textContent = `${letters}: ${selectedQuestion.explanation}`;
+    } else {
+      explanationEl.textContent = selectedQuestion.explanation;
+    }
     explanationEl.style.display = '';
   } else {
     explanationEl.style.display = 'none';
@@ -241,13 +249,15 @@ function setState(state) {
     revealed:    { activate: ['btn-light',   false], reveal: ['btn-secondary', true],  close: ['btn-primary',   false], next: false },
     closed:      { activate: [currentTotal > 0 ? 'btn-light' : 'btn-primary', false], reveal: ['btn-secondary', true], close: ['btn-secondary', true], next: currentTotal > 0 },
   }[state];
+  const hasCorrect = selectedQuestion && selectedQuestion.correct != null;
+  btnShowAnswer.style.display = hasCorrect ? '' : 'none';
   [btnActivate, btnShowAnswer, btnClose].forEach((btn, i) => {
     const key = ['activate', 'reveal', 'close'][i];
     btn.className = cfg[key][0];
     btn.disabled  = cfg[key][1];
   });
   updateNextBtn(cfg.next);
-  const primary = cfg.next ? btnNext : [btnActivate, btnShowAnswer, btnClose].find((btn, i) => cfg[['activate','reveal','close'][i]][0] === 'btn-primary');
+  const primary = cfg.next ? btnNext : [btnActivate, btnShowAnswer, btnClose].find((btn, i) => cfg[['activate','reveal','close'][i]][0] === 'btn-primary' && btn.style.display !== 'none');
   if (primary) primary.focus();
 }
 
