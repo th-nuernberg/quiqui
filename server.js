@@ -143,6 +143,9 @@ app.get('/katex.min.css', (req, res) => {
 app.get('/katex-extension.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'node_modules', 'marked-katex-extension', 'lib', 'index.umd.js'));
 });
+app.get('/purify.min.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'node_modules', 'dompurify', 'dist', 'purify.min.js'));
+});
 // KaTeX fonts (referenced by katex.min.css as ./fonts/...)
 app.use('/fonts', express.static(path.join(__dirname, 'node_modules', 'katex', 'dist', 'fonts')));
 
@@ -164,7 +167,8 @@ app.get('/view/:sessionId', (req, res) => {
 // Legal pages
 app.get('/impressum', (req, res) => {
   const raw = req.query.back || '';
-  const back = (raw.startsWith('/') || raw.startsWith(`${req.protocol}://${req.hostname}`)) ? raw : null;
+  // Accept same-site paths only — reject protocol-relative ("//evil.com") open redirects
+  const back = ((raw.startsWith('/') && !raw.startsWith('//')) || raw.startsWith(`${req.protocol}://${req.hostname}`)) ? raw : null;
   const logoHref = back || '/';
   const backLink = back ? back : 'javascript:history.back()';
 
@@ -587,7 +591,7 @@ io.on('connection', (socket) => {
   // Student submits answer(s)
   socket.on('submit-answer', ({ sessionId, selected }) => {
     const s = sessions.get(sessionId);
-    if (!s || !s.open) return;
+    if (!s || !s.open || !s.activeQuestion) return;
     if (s.voters.has(socket.id)) return; // deduplicated by socket ID
 
     // Validate selections: must be a non-empty array of valid integer indices

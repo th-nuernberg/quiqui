@@ -406,5 +406,8 @@ function previewQuestion(s) {
     .trim();
 }
 
-function mdHtml(s) { return marked.parse(s); }
-function mdInline(s) { return marked.parseInline(s); }
+// Question/answer content comes from a public GitHub repo, so it is untrusted.
+// Sanitise the rendered Markdown/LaTeX to strip embedded HTML/JS (XSS).
+// DOMPurify's default profile permits HTML + SVG + MathML, preserving KaTeX output.
+function mdHtml(s) { return DOMPurify.sanitize(marked.parse(s)); }
+function mdInline(s) { return DOMPurify.sanitize(marked.parseInline(s)); }

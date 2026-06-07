@@ -270,10 +270,14 @@ function applyTitle(title) {
   document.getElementById('logo-title').textContent = title;
 }
 
+// Question/answer content comes from a public GitHub repo, so it is untrusted.
+// Render Markdown/LaTeX, then sanitise to strip any embedded HTML/JS (XSS).
+// DOMPurify's default profile permits HTML + SVG + MathML, which preserves
+// KaTeX's rendered math output.
 function mdHtml(s) {
-  return marked.parse(s);
+  return DOMPurify.sanitize(marked.parse(s));
 }
 
 function mdInline(s) {
-  return marked.parseInline(s);
+  return DOMPurify.sanitize(marked.parseInline(s));
 }

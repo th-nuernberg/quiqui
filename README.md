@@ -68,7 +68,7 @@ Or with auto-restart on file changes:
 npm run dev
 ```
 
-Both commands set the required git environment variables automatically (see `start.sh`). Do not run `node server.js` directly — git cloning will hang or fail without them.
+Both commands set the required git environment variables (`GIT_TERMINAL_PROMPT`, `GIT_ASKPASS`, `GIT_PAGER`) automatically — `npm start` via `start.sh`, `npm run dev` inline. Don't launch the server without them (e.g. plain `node server.js`) — git cloning will hang or fail.
 
 Then open:
 - Teacher page: `http://localhost:3000/teach` (or your configured slug)
@@ -96,10 +96,13 @@ quiqui/
 └── public/                 # Served statically (no auth required)
     ├── index.html          # Landing page
     ├── student.html        # Student view
+    ├── projector.html      # Presenter/beamer view — read-only, shows QR + live results
     ├── privacy.html        # Privacy policy (DE/EN)
     ├── style.css           # Shared styles
+    ├── projector.css       # Presenter-view styles
     ├── teacher.js          # Teacher frontend logic
     ├── student.js          # Student frontend logic
+    ├── projector.js        # Presenter-view frontend logic
     └── quiqui-logo.png     # Logo
 ```
 
@@ -140,8 +143,11 @@ QuiQui uses a shared-secret approach suited for lecture deployments:
 - **Teacher socket events** (`activate-question`, `deactivate-question`, `show-answer`, `close-question`) require a `token` field matching the slug
 - **Student endpoints** (`/join/:sessionId`, socket events) are intentionally open — no login required
 - **Only public GitHub repos** are accepted — `file://` and `ssh://` URLs are rejected; repo size is checked via the GitHub API before cloning
+- **Untrusted question content is sanitised** — question and answer text comes from a public GitHub repo (which the teacher may not control), so it is treated as untrusted. The client renders Markdown/LaTeX with `marked` + KaTeX and then runs the result through [DOMPurify](https://github.com/cure53/DOMPurify) before inserting it into the page, preventing stored XSS from a malicious repo. DOMPurify's default profile permits HTML, SVG, and MathML, so KaTeX's rendered math is preserved. This applies to the teacher, student, and projector views alike.
 
-This is not a substitute for HTTPS or a proper authentication system. For a shared deployment used by multiple lecturers, add authentication in a future version.
+**Multiple lecturers, one instance.** A single deployment safely supports many concurrent sessions — each is isolated by its `session_url` (see [Features](#features)), so lecturers never see or affect one another's questions, votes, or results. The one thing to know is that the teacher slug is a *single shared secret*: anyone who knows it can control any session on the instance. If your lecturers should not be able to act on each other's sessions, give each their own deployment with its own `TEACHER_SLUG`.
+
+The slug is a shared secret, not real authentication — keep your instance behind HTTPS so it can't be read off the wire.
 
 ---
 
