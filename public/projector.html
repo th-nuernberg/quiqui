@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QuiQui</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/katex.min.css" />
+  <link rel="stylesheet" href="/projector.css" />
+</head>
+<body>
+
+  <div class="projector-outer">
+
+    <!-- Left: QR + join URL — spacer matches .top-bar height so card aligns with question card -->
+    <aside class="proj-sidebar">
+      <div class="proj-sidebar-spacer"></div>
+      <div class="proj-qr-wrap">
+      <img id="proj-qr-img" src="" alt="QR code to join" class="proj-qr-img" />
+      <div class="proj-join-label">Join at</div>
+      <div class="proj-join-url" id="proj-join-url"></div>
+      </div>
+    </aside>
+
+    <!-- Right: student-style content column -->
+    <div class="page-wrap page-wrap--narrow proj-content">
+      <header class="top-bar">
+        <img src="/quiqui-logo.png" alt="QuiQui" class="logo" />
+        <span class="logo-title" id="logo-title"></span>
+      </header>
+
+      <!-- Waiting screen -->
+      <section class="card screen" id="screen-waiting">
+        <div class="join-screen-inner">
+          <div class="waiting-msg" id="waiting-msg">Waiting for the next question</div>
+        </div>
+      </section>
+
+      <!-- Question screen -->
+      <section class="card screen" id="screen-question" style="display:none;">
+        <div class="type-hint" id="type-hint"></div>
+        <div class="q-heading" id="proj-q-text"></div>
+        <div class="answer-list" id="proj-answer-list"></div>
+        <div class="meta-line" id="proj-result-meta" style="display:none;"></div>
+      </section>
+
+    </div>
+
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/marked.min.js"></script>
+  <script src="/katex.min.js"></script>
+  <script src="/katex-extension.js"></script>
+  <script src="/purify.min.js"></script>
+  <script src="/projector.js"></script>
+</body>
+</html>

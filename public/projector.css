@@ -1,0 +1,72 @@
+/* ─── Projector / beamer view ────────────────────────────────────────────── */
+
+/* Outer: center the QR + content pair on screen */
+.projector-outer {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 0 1rem;
+  min-height: 100vh;
+  zoom: 1.5;
+}
+
+/* Content column: reuses .page-wrap--narrow (480px) from style.css,
+   but without the bottom padding override so it sits flush */
+.proj-content {
+  padding-bottom: 1rem;
+}
+
+.proj-sidebar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Matches .top-bar: padding-top 1rem + padding-bottom 1.25rem + margin-bottom 1.5rem */
+.proj-sidebar-spacer {
+  height: calc(1rem + 1.25rem + 1.5rem + 28px); /* 28px = logo height */
+  flex-shrink: 0;
+}
+
+/* QR card: aligned with the question card */
+.proj-qr-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-bg);
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  text-align: center;
+  width: 160px;
+}
+
+.proj-qr-img {
+  width: 130px;
+  height: 130px;
+  display: block;
+}
+
+.proj-join-label {
+  font-size: 11px;
+  color: var(--color-text-hint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.proj-join-url {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-accent);
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+/* Answer options: no hover effect, no pointer cursor */
+.projector-outer .answer-opt {
+  cursor: default;
+  pointer-events: none;
+}
