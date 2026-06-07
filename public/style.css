@@ -286,6 +286,13 @@ select:focus {
   color: #e65100;
 }
 
+/* Live stopwatch shown in place of the badge while a question is active */
+.badge-running {
+  background: #ffebee;
+  color: #c62828;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ─── Join info ────────────────────────────────────────────────── */
 .join-row {
   display: flex;

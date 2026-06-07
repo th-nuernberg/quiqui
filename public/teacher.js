@@ -13,6 +13,8 @@ let revealedCorrectIndices = [];
 let currentVotes = {};
 let currentTotal = 0;
 let currentState = 'inactive';
+let runStart = 0;        // Date.now() when the question went active
+let runTimer = null;     // setInterval handle for the live stopwatch
 
 // Slug is the path segment this page was loaded from — used as the teacher token
 const TEACHER_TOKEN = window.location.pathname.replace(/^\//, '').split('/')[0];
@@ -118,6 +120,7 @@ async function pullRepo() {
     setStatus(`Pulled ${data.files.length} file(s).`);
     sectionQuestions.style.display = 'none';
     sectionActive.style.display = 'none';
+    stopStopwatch();
     questionList.innerHTML = '';
     selectedQuestion = null;
     selectedIndex = -1;
@@ -147,6 +150,7 @@ async function loadFile() {
     renderQuestionList();
     sectionQuestions.style.display = '';
     sectionActive.style.display = 'none';
+    stopStopwatch();
     questionList.firstElementChild?.focus();
   } catch (err) {
     setStatus('Error loading file: ' + err.message, true);
@@ -232,10 +236,16 @@ function setState(state) {
     revealed:    '◼ Revealed',
     closed:      '◼ Closed',
   };
-  const badgeMod = state === 'active' ? '' : state === 'inactive' ? ' badge-inactive' : ' badge-closed';
-  statusBadge.textContent = labels[state] || '';
   statusBadge.style.display = state ? '' : 'none';
-  statusBadge.className = 'badge-live' + badgeMod;
+  if (state === 'active') {
+    // While active, the badge becomes a live red stopwatch counting up.
+    startStopwatch();
+  } else {
+    stopStopwatch();
+    const badgeMod = state === 'inactive' ? ' badge-inactive' : ' badge-closed';
+    statusBadge.textContent = labels[state] || '';
+    statusBadge.className = 'badge-live' + badgeMod;
+  }
 
   // Activate button toggles label based on state
   btnActivate.textContent = state === 'active' ? '⏹ Deactivate' : '▶ Activate';
@@ -265,6 +275,27 @@ function setState(state) {
   updateNextBtn(cfg.next);
   const primary = cfg.next ? btnNext : [btnActivate, btnShowAnswer, btnClose].find((btn, i) => cfg[['activate','reveal','close'][i]][0] === 'btn-primary' && btn.style.display !== 'none');
   if (primary) primary.focus();
+}
+
+// ─── Stopwatch ────────────────────────────────────────────────────────────────
+// While a question is active, the status badge shows elapsed run time (m:ss),
+// updated once per second. Reverts to a normal badge in every other state.
+function startStopwatch() {
+  if (runTimer) return;          // already running — keep the existing start time
+  runStart = Date.now();
+  renderStopwatch();
+  runTimer = setInterval(renderStopwatch, 1000);
+}
+
+function stopStopwatch() {
+  if (runTimer) { clearInterval(runTimer); runTimer = null; }
+}
+
+function renderStopwatch() {
+  const secs = Math.floor((Date.now() - runStart) / 1000);
+  const mins = Math.floor(secs / 60);
+  statusBadge.textContent = `● ${mins}:${String(secs % 60).padStart(2, '0')}`;
+  statusBadge.className = 'badge-live badge-running';
 }
 
 function updateNextBtn(strong = false) {
@@ -391,6 +422,7 @@ socket.on('session-expired', () => {
   btnShowAnswer.disabled = true;
   btnClose.disabled = true;
   btnNext.style.display = 'none';
+  stopStopwatch();
   statusBadge.style.display = 'none';
   setStatus('Session has expired. Pull the repo again to start a new session.', true);
 });
