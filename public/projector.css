@@ -9,6 +9,8 @@
   gap: 1.5rem;
   padding: 0 1rem;
   min-height: 100vh;
+  /* zoom is set dynamically from JS (fitScreen) to scale with viewport width;
+     1.5 is the fallback for the reference 1920px-wide screen */
   zoom: 1.5;
 }
 

@@ -397,6 +397,13 @@ select:focus {
 
 .answer-opt:hover { background: var(--color-bg-secondary); }
 
+/* Let the answer text column shrink inside the flex row and break long
+   words/URLs instead of forcing horizontal overflow on narrow screens */
+.answer-opt > div:last-child {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
 .answer-opt.selected {
   border-color: var(--color-accent);
   background: var(--color-accent-light);
@@ -510,6 +517,16 @@ select:focus {
   background: none;
   padding: 0;
   font-size: 13px;
+}
+
+/* Wide display math ($$...$$) scrolls horizontally instead of overflowing
+   the page on narrow (mobile) screens */
+.active-question-text .katex-display,
+.q-heading .katex-display,
+.answer-opt .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px; /* room for scrollbar without clipping descenders */
 }
 
 

@@ -14,6 +14,18 @@ const answerList     = document.getElementById('proj-answer-list');
 const resultMeta     = document.getElementById('proj-result-meta');
 const qrImg          = document.getElementById('proj-qr-img');
 const joinUrlEl      = document.getElementById('proj-join-url');
+const projectorOuter = document.querySelector('.projector-outer');
+
+// ─── Responsive scaling ─────────────────────────────────────────────────────────
+// Chrome ignores vw units inside `zoom`, so we set the zoom from JS instead.
+// 1.5× at the reference 1920px viewport, clamped to [1, 2.5] for low-res
+// projectors and large 4K displays. Keys off CSS-pixel viewport width.
+function fitScreen() {
+  const zoom = Math.min(2.5, Math.max(1, window.innerWidth / 1280));
+  if (projectorOuter) projectorOuter.style.zoom = zoom;
+}
+window.addEventListener('resize', fitScreen);
+fitScreen();
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 const joinUrl = `${location.origin}/join/${getSessionId()}`;

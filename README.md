@@ -18,6 +18,7 @@ A lightweight live audience response tool for university lectures. The lecturer 
 - **Live results** — bar chart updates in real time as students submit
 - **Four-state flow** — Activate → Deactivate (bars, no highlights) → Reveal (correct answers highlighted) → Close (students return to waiting screen)
 - **Reveal answer** — teacher reveals correct answers; correct options are highlighted in green for everyone in the room
+- **Run timer** — while a question is active, the teacher view shows a live stopwatch counting up, so the lecturer can see how long voting has been open
 - **Single and multiple choice** — per-question type configured in YAML
 - **Markdown and LaTeX** — question text and answers support code blocks, inline code, and math expressions
 - **Questions in Git** — question files live in a public GitHub repo; no admin interface needed
