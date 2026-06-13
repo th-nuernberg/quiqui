@@ -376,6 +376,12 @@ async function fetchQR(url) {
 socket.on('connect', () => {
   connectionIndicator.classList.remove('connection-indicator--off');
   connectionIndicator.title = 'Connected';
+  // Re-join the session room after a (re)connect — the new socket id is not in
+  // the room, so without this vote-update and button-echo broadcasts would stop
+  // reaching us, leaving frozen bars and seemingly dead buttons.
+  if (currentSessionId && !sessionExpired) {
+    socket.emit('join-session', { sessionId: currentSessionId });
+  }
 });
 
 socket.on('disconnect', () => {

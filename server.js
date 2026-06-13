@@ -13,7 +13,11 @@ const QRCode = require('qrcode');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+// Heartbeat tolerant of an idle teacher (no action for a couple of minutes):
+// a missed pong within pingInterval + pingTimeout drops the connection, so keep
+// the window generous. The real recovery is the teacher re-joining its room on
+// reconnect (see public/teacher.js) — this just reduces how often that happens.
+const io = new Server(server, { pingInterval: 25000, pingTimeout: 60000 });
 
 const LOG_LEVEL = (process.env.LOG_LEVEL || 'INFO').toUpperCase();
 const log = {
