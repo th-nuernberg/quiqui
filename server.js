@@ -605,16 +605,20 @@ io.on('connection', (socket) => {
   });
 
   // Student submits answer(s)
-  socket.on('submit-answer', ({ sessionId, selected }) => {
+  socket.on('submit-answer', ({ sessionId, selected, voterId }) => {
     const s = sessions.get(sessionId);
     if (!s || !s.open || !s.activeQuestion) return;
-    if (s.voters.has(socket.id)) return; // deduplicated by socket ID
+    // Deduplicate on the stable per-browser voterId so the guard survives a
+    // reconnect (which yields a new socket.id). Fall back to socket.id for any
+    // client that doesn't send a voterId.
+    const voterKey = (typeof voterId === 'string' && voterId) ? `v:${voterId}` : socket.id;
+    if (s.voters.has(voterKey)) return;
 
     // Validate selections: must be a non-empty array of valid integer indices
     if (!Array.isArray(selected) || selected.length === 0 || selected.length > s.activeQuestion.answers.length) return;
     if (selected.some(i => !Number.isInteger(i) || i < 0 || i >= s.activeQuestion.answers.length)) return;
 
-    s.voters.add(socket.id);
+    s.voters.add(voterKey);
     selected.forEach(idx => {
       if (s.votes[idx] !== undefined) s.votes[idx]++;
     });

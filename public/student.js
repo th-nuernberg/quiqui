@@ -211,7 +211,7 @@ function submitAnswer() {
 
   const sessionId = getSessionId();
   markAnswered(currentQuestion.question);
-  socket.emit('submit-answer', { sessionId, selected });
+  socket.emit('submit-answer', { sessionId, selected, voterId: getVoterId() });
 
   // Reveal bars immediately — they start at 0% and animate in on first vote-update
   showInlineBars();
@@ -269,6 +269,19 @@ function markAnswered(question) {
 
 function hasAnswered(question) {
   return sessionStorage.getItem(answerKey(question)) === '1';
+}
+
+// Stable per-browser id sent with each vote so the server can deduplicate across
+// reconnects (a reconnect gives a new socket id, which would otherwise defeat the
+// server-side double-vote guard). Persisted in sessionStorage like the answer lock.
+function getVoterId() {
+  let id = sessionStorage.getItem('voterId');
+  if (!id) {
+    id = (crypto.randomUUID && crypto.randomUUID()) ||
+         `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    sessionStorage.setItem('voterId', id);
+  }
+  return id;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
