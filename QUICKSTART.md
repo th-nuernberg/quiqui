@@ -48,7 +48,7 @@ QuiQui lets you pose a question to your class and see live answers on screen —
 
 ## What students see
 
-<img src="public/student-view.png" alt="Student View" width="500" />
+<img src="public/student-view.png" alt="Student View" width="400" />
 
 Students visit the join URL or scan the QR code — no login, no app install. They see "Waiting for the next question" until you activate a question. After submitting their answer (only once per question), the result bars appear live under each answer option.
 
