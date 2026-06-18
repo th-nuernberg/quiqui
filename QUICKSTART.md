@@ -22,7 +22,9 @@ QuiQui lets you pose a question to your class and see live answers on screen —
    ```
    https://quiqui-x9um.onrender.com/<teacher-slug>?repo=https://github.com/you/quiqui-questions
    ```
-   Contact the hosted service operator to receive your teacher slug.
+   You have two options here:
+   - **Use a hosted instance** (e.g. [quiqui-x9um.onrender.com](https://quiqui-x9um.onrender.com)) — contact the [hosted service operator](https://quiqui-x9um.onrender.com/impressum#en) to receive your teacher slug, which goes in place of `<teacher-slug>` above.
+   - **Deploy your own instance** — QuiQui is open source ([th-nuernberg/quiqui](https://github.com/th-nuernberg/quiqui)); deploy it yourself (e.g. on Render) and set your own `TEACHER_SLUG`. You then control your own teacher URL.
 3. **Put the student QR code or URL in your slides** — it never changes as long as `session_url` in `config.yaml` stays the same. The `session_url` must be **globally unique** on the server — see [Choosing a unique `session_url`](#choosing-a-unique-session_url) below
 4. **Optionally bookmark the projector URL** (`/view/<session_url>`) to open in your browser during the lecture — it shows the live question and results on your beamer alongside the QR code
 
