@@ -15,17 +15,17 @@ No student sign-up. No app to install. No admin panel to click through — **you
 
 Commerical poll tools want an account, a subscription, your students' data, and a lot of clicking. QuiQui does one thing: **live in-class polling, stripped to the essentials.**
 
+📝 **Your questions are plain text in Git**
+Write questions as simple YAML in a public GitHub repo. Version them, diff them, copy them between courses, edit them in your favourite editor. No clunky web form, no vendor lock-in — pull the latest into a session anytime.
+
+🧮 **Built for real teaching content**
+Full **Markdown and LaTeX** support in questions *and* answers — code blocks, inline code, and proper math render beautifully. Single- and multiple-choice per question.
+
 🎯 **Zero friction for students**
 They scan a QR code (or type a short URL) and they're in. No login, no app, no email. Works on any phone with a browser.
 
 📊 **Live results, teacher-paced**
 You decide which question is live — students can't skip ahead. The bar chart updates in real time as votes land, then you **reveal the correct answer** with one click and it turns green on every screen in the room.
-
-📝 **Your questions are plain text in Git**
-Write questions as simple YAML in a public GitHub repo. Version them, diff them, copy them between courses, edit them in your favourite editor. No clunky web form, no vendor lock-in — pull the latest into a session anytime.
-
-🧮 **Built for real teaching content**
-Full **Markdown and LaTeX** support in questions *and* answers — code blocks, inline code, and proper math (`$\frac{a}{b}$`) render beautifully. Single- and multiple-choice per question.
 
 🖥️ **A view for every screen**
 A dedicated **projector view** shows the QR code and live results on the beamer, while you drive everything from the teacher view — complete with a live stopwatch so you know how long voting's been open.
