@@ -188,8 +188,18 @@ Bug fix pull requests are welcome. For improvement ideas and feature requests, p
 3. Commit your changes
 4. Open a pull request
 
+By submitting a contribution, you agree it is licensed under the project's [AGPL-3.0-or-later](LICENSE) terms.
+
 ---
 
 ## License
 
 [AGPL-3.0](LICENSE)
+
+**What this means for you, plainly:**
+
+- ✅ **Running QuiQui for your lectures is completely free, with no obligations** — whether you use it as-is or tweak it for yourself. Just using it never requires you to share anything or ask permission.
+- ✅ Self-host it for your university, department, or course as much as you like.
+- 🔁 The only requirement: **if you publicly host a *modified* version**, you must make your changes available under the same license. In other words — improvements to QuiQui stay open for everyone, and nobody can take it closed-source. That's the whole point of the AGPL.
+
+If you just want to use QuiQui in class, you owe nothing and need do nothing. The copyleft only ever applies to people who change the code *and* offer it to others.
