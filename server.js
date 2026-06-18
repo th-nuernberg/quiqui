@@ -64,7 +64,7 @@ function requireTeacher(req, res, next) {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 // Stable directory name for a repo — sanitised from the URL for easy debugging
-// e.g. https://github.com/albrechtje/quiqui-questions → github.com-albrechtje-quiqui-questions
+// e.g. https://github.com/th-nuernberg/quiqui-questions → github.com-th-nuernberg-quiqui-questions
 function repoDirName(repoUrl) {
   return repoUrl
     .replace(/^https?:\/\//, '')
