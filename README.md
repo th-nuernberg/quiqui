@@ -1,8 +1,8 @@
 <img src="public/quiqui-logo.png" alt="QuiQui" width="240" />
 
-# Live audience response for lectures — no apps, no accounts, no database
+# Live quiz & audience response tool for lectures — no apps, no accounts, no database
 
-**Create a quick quiz with QuiQui and turn any lecture into a live poll in seconds.** You activate a question, students scan a QR code and answer on their phones, and the whole room watches the results fill in on a live bar chart. Reveal the correct answer whenever you like — it lights up green for everyone at once.
+**QuiQui — short for *quick quiz* — is a free, open-source live quiz tool that turns any lecture into a live poll in seconds.** You activate a question, students scan a QR code and answer on their phones, and the whole room watches the results fill in on a live bar chart. Reveal the correct answer whenever you like — it lights up green for everyone at once.
 
 No student sign-up. No app to install. No admin panel to click through — **your questions are just YAML files in a GitHub repo.**
 
@@ -14,7 +14,7 @@ No student sign-up. No app to install. No admin panel to click through — **you
 
 ## Why QuiQui?
 
-Commerical poll tools want an account, a subscription, your students' data, and a lot of clicking. QuiQui does one thing: **live in-class polling, stripped to the essentials.**
+Commercial quiz and poll tools want an account, a subscription, your students' data, and a lot of clicking. QuiQui does one thing: **live in-class polling, stripped to the essentials.**
 
 📝 **Your questions are plain text in Git**
 Write questions as simple YAML in a public GitHub repo. Version them, diff them, copy them between courses, edit them in your favourite editor. No clunky web form, no vendor lock-in — pull the latest into a session anytime.
