@@ -103,6 +103,23 @@ Then open:
 - Teacher page: `http://localhost:3000/teach` (or your configured slug)
 - Student page: `http://localhost:3000/join/<session_url>` (shown as QR code after pulling a repo)
 
+### Run with Docker
+
+A prebuilt image is published at [`ghcr.io/th-nuernberg/quiqui`](https://github.com/th-nuernberg/quiqui/pkgs/container/quiqui) — no clone or `npm install` needed.
+
+```bash
+docker pull ghcr.io/th-nuernberg/quiqui:latest
+docker run -p 3000:3000 --env-file .env ghcr.io/th-nuernberg/quiqui:latest
+```
+
+`--env-file .env` loads your configuration from a local `.env` file (copy `.env.example` first, as above). Alternatively, pass individual variables with `-e`:
+
+```bash
+docker run -p 3000:3000 -e TEACHER_SLUG=teach-xk92p ghcr.io/th-nuernberg/quiqui:latest
+```
+
+The container includes git, required at runtime to clone question repositories — no extra setup needed. Sessions are in-memory only, so they're lost on container restart, same as running the server directly.
+
 ---
 
 ## Question format

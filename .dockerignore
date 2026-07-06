@@ -1,0 +1,9 @@
+node_modules
+tmp
+.env
+.git
+.claude
+CLAUDE.md
+demo-paper
+*.md
+.DS_Store
