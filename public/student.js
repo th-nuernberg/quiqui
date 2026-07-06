@@ -1,4 +1,12 @@
 marked.use(markedKatex({ throwOnError: false }));
+marked.use({
+  renderer: {
+    link({ href, title, tokens }) {
+      const text = this.parser.parseInline(tokens);
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer"${title ? ` title="${title}"` : ''}>${text}</a>`;
+    }
+  }
+});
 
 const socket = io();
 
