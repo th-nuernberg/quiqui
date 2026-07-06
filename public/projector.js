@@ -146,7 +146,10 @@ socket.on('question-closed', () => {
   showScreen('waiting');
 });
 
-socket.on('session-expired', () => {
+socket.on('session-expired', ({ sessionId } = {}) => {
+  // Ignore expiries for other concurrent sessions (event is room-scoped, but
+  // guard on sessionId in case a stray/global emit arrives).
+  if (sessionId && sessionId !== getSessionId()) return;
   currentQuestion = null;
   document.getElementById('waiting-msg').textContent = 'No quiz session active at this URL.';
   showScreen('waiting');

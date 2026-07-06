@@ -120,6 +120,14 @@ docker run -p 3000:3000 -e TEACHER_SLUG=teach-xk92p ghcr.io/th-nuernberg/quiqui:
 
 The container includes git, required at runtime to clone question repositories — no extra setup needed. Sessions are in-memory only, so they're lost on container restart, same as running the server directly.
 
+### Tests
+
+```bash
+npm test
+```
+
+An end-to-end suite in [`test/security.test.js`](test/security.test.js) boots the real server on a throwaway port and drives it over HTTP and Socket.io to verify the security-relevant behaviour: server-side vote validation (dedupe + single-choice enforcement), the voter-count cap, room-scoped session expiry (so concurrent sessions can't disturb each other), the `/api/qr-public` host restriction, and `session_url` validation. It also runs `npm audit` in CI. Some checks clone the public companion question repo; if GitHub is unreachable those are skipped rather than failed, so the suite still runs offline. The suite runs automatically on every push and pull request (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)), and a published Docker image is only built after it passes.
+
 ---
 
 ## Question format
@@ -195,6 +203,8 @@ QuiQui uses a shared-secret approach suited for lecture deployments:
 
 The slug is a shared secret, not real authentication — keep your instance behind HTTPS so it can't be read off the wire.
 
+These properties — vote-tally integrity, session isolation, and the input restrictions above — are covered by the [test suite](#tests), which runs on every push and pull request.
+
 ---
 
 ## Contributing
@@ -204,7 +214,8 @@ Bug fix pull requests are welcome. For improvement ideas and feature requests, p
 1. Fork the repo
 2. Create a feature branch (`git checkout -b fix/my-fix`)
 3. Commit your changes
-4. Open a pull request
+4. Run `npm test` and make sure it passes
+5. Open a pull request — CI runs the same tests on your PR
 
 By submitting a contribution, you agree it is licensed under the project's [AGPL-3.0-or-later](LICENSE) terms.
 

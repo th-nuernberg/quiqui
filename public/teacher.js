@@ -109,6 +109,11 @@ async function pullRepo() {
     // sessionId is always returned by the server (from config.session_url or random fallback)
     currentSessionId = data.sessionId;
     sessionExpired = false;
+    // Join the session room now — before any question is activated — so
+    // room-scoped server events (e.g. session-expired) reach this teacher even
+    // on a freshly-pulled session. Without this the teacher only joins on
+    // activate/reconnect and would miss an expiry of a not-yet-activated session.
+    socket.emit('join-session', { sessionId: currentSessionId });
     const joinUrl = `${location.origin}/join/${currentSessionId}`;
     joinUrlEl.textContent = joinUrl;
     joinUrlEl.href = joinUrl;
@@ -208,6 +213,11 @@ function renderQuestionList() {
 }
 
 function selectQuestion(index) {
+  // Buttons are disabled once the session expires, but the question list itself
+  // stays clickable — without this, clicking around silently does nothing and the
+  // easy-to-miss status line is the only clue why.
+  if (sessionExpired) { alert('Session has expired. Pull the repo again to start a new session.'); return; }
+
   // A live poll (active/deactivated/revealed) has students watching it. Switching
   // away tears it down server-side and sends those students to the waiting screen,
   // so confirm before doing it. inactive/closed have nothing live to disturb.
@@ -497,7 +507,10 @@ socket.on('question-closed', () => {
   setState('closed');
 });
 
-socket.on('session-expired', () => {
+socket.on('session-expired', ({ sessionId } = {}) => {
+  // Ignore expiries belonging to other concurrent sessions — this event is
+  // room-scoped, but guard on sessionId in case a stray/global emit arrives.
+  if (sessionId && sessionId !== currentSessionId) return;
   sessionExpired = true;
   currentSessionId = null;
   btnActivate.disabled = true;

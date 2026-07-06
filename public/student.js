@@ -133,7 +133,10 @@ socket.on('question-closed', () => {
 });
 
 // Session expired — show "no session" message without requiring a refresh
-socket.on('session-expired', () => {
+socket.on('session-expired', ({ sessionId } = {}) => {
+  // Ignore expiries for other concurrent sessions (event is room-scoped, but
+  // guard on sessionId in case a stray/global emit arrives).
+  if (sessionId && sessionId !== getSessionId()) return;
   currentQuestion = null;
   submitted = false;
   selected = [];
@@ -152,12 +155,9 @@ socket.on('session-created', ({ title, sessionToken }) => {
 
 // ─── Show question ────────────────────────────────────────────────────────────
 function showQuestion(question) {
-  const sessionId = getSessionId();
-  if (hasAnswered(question.question)) {
-    // Already submitted — render question with bars visible but locked
-    currentQuestion = question;
-    submitted = true;
-  }
+  // Restore the submitted lock if this browser already answered this question
+  // (e.g. after a refresh) — currentQuestion is set unconditionally just below.
+  if (hasAnswered(question.question)) submitted = true;
 
   currentQuestion = question;
   selected = [];

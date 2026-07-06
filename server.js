@@ -38,7 +38,9 @@ const VERSION_LINK = 'https://github.com/th-nuernberg/quiqui/releases';
 const VERSION_HTML =
   `<a href="${VERSION_LINK}" target="_blank" rel="noopener" title="Release notes on GitHub">Version ${APP_VERSION}</a>`;
 
-const SESSION_TIMEOUT_MS = 90 * 60 * 1000; // 90 minutes after last question activation
+// 90 minutes after last question activation. Overridable via env only so the
+// test suite can force a fast expiry; production leaves it unset.
+const SESSION_TIMEOUT_MS = Number(process.env.SESSION_TIMEOUT_MS) || 90 * 60 * 1000;
 const REPO_SIZE_LIMIT_KB = 1024;  // 1 MB — GitHub reports size in KB
 const FILE_SIZE_LIMIT_KB = 100;   // 100 KB per question file
 
@@ -55,7 +57,7 @@ setInterval(() => {
       expireSession(sessionId);
     }
   }
-}, 10000); // check every 10 s (fine for 90-min timeout; adjust if shortening for tests)
+}, Math.min(10000, Math.max(1000, SESSION_TIMEOUT_MS / 4))); // 10 s normally; faster when the timeout is shortened for tests
 
 // ─── Static files ─────────────────────────────────────────────────────────────
 // HTML documents are served with `Cache-Control: no-cache` so clients (in
@@ -398,6 +400,17 @@ app.post('/api/pull', requireTeacher, async (req, res) => {
     // Derive sessionId — stable slug from config or random fallback
     const sessionId = config.session_url || crypto.randomBytes(3).toString('hex');
 
+    // session_url becomes a URL path segment, a socket room name, and the QR
+    // target, so constrain it to the same charset /api/qr-public accepts —
+    // otherwise the projector QR silently fails and join links break. Reject
+    // early with a clear message rather than building a broken session. (The
+    // random-hex fallback above always satisfies this pattern.)
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(String(sessionId))) {
+      return res.status(400).json({
+        error: 'config.yaml "session_url" must be 1–64 characters, letters/digits/hyphen/underscore only (no spaces or slashes).',
+      });
+    }
+
     // Check for session_url conflict: another active session with the same ID from a different repo
     const existing = sessions.get(sessionId);
     if (existing && existing.repoUrl !== repo) {
@@ -504,11 +517,15 @@ app.get('/api/qr', requireTeacher, async (req, res) => {
 app.get('/api/qr-public', async (req, res) => {
   const { url } = req.query;
   if (!url) return res.status(400).json({ error: 'url is required' });
-  // Only allow generating QR codes for join URLs on this same origin
+  // Only allow generating QR codes for join URLs on this same host — otherwise
+  // this becomes a no-auth QR generator for any attacker-chosen URL served from
+  // our trusted domain (checking the path alone lets any host through).
   const joinPattern = /^\/join\/[a-zA-Z0-9_-]+$/;
-  let pathname;
-  try { pathname = new URL(url).pathname; } catch { return res.status(400).json({ error: 'invalid url' }); }
-  if (!joinPattern.test(pathname)) return res.status(403).json({ error: 'only join URLs are allowed' });
+  let parsed;
+  try { parsed = new URL(url); } catch { return res.status(400).json({ error: 'invalid url' }); }
+  if (parsed.host !== req.headers.host || !joinPattern.test(parsed.pathname)) {
+    return res.status(403).json({ error: 'only join URLs on this host are allowed' });
+  }
   try {
     const dataUrl = await QRCode.toDataURL(url, { width: 200, margin: 1 });
     res.json({ dataUrl });
@@ -539,9 +556,13 @@ function expireSession(sessionId) {
   const s = sessions.get(sessionId);
   if (!s) return;
   s.open = false;
+  // Scope both emits to this session's room only. A global io.emit here would
+  // reach every other concurrent session too — their clients can't tell it
+  // apart from their own expiry and would wrongly reset. The teacher joins its
+  // room at pull time (see teacher.js pullRepo), so a room emit reaches it even
+  // before the first activation; the sessionId lets clients confirm it's theirs.
   io.to(`session:${sessionId}`).emit('question-closed');
-  io.to(`session:${sessionId}`).emit('session-expired');
-  io.emit('session-expired');
+  io.to(`session:${sessionId}`).emit('session-expired', { sessionId });
   // Clean up cloned files
   fs.promises.rm(s.questionsDir, { recursive: true, force: true }).catch(() => {});
   sessions.delete(sessionId);
@@ -648,13 +669,24 @@ io.on('connection', (socket) => {
     // client that doesn't send a voterId.
     const voterKey = (typeof voterId === 'string' && voterId) ? `v:${voterId}` : socket.id;
     if (s.voters.has(voterKey)) return;
+    // Voting is anonymous and voterId is client-supplied, so a scripted client
+    // can mint unlimited fake voters — each one grows this set and fires a
+    // room-wide vote-update broadcast. Cap it far above any real lecture size
+    // to bound memory and broadcast load; legitimate sessions never reach it.
+    if (s.voters.size >= 10000) return;
 
     // Validate selections: must be a non-empty array of valid integer indices
     if (!Array.isArray(selected) || selected.length === 0 || selected.length > s.activeQuestion.answers.length) return;
     if (selected.some(i => !Number.isInteger(i) || i < 0 || i >= s.activeQuestion.answers.length)) return;
 
+    // Dedupe and enforce single-choice — a single submission must not stack a
+    // bar with duplicate indices, or pick several options on a single-answer
+    // question. The UI already prevents both; this blocks a scripted client.
+    const unique = [...new Set(selected)];
+    if (s.activeQuestion.type === 'single' && unique.length > 1) return;
+
     s.voters.add(voterKey);
-    selected.forEach(idx => {
+    unique.forEach(idx => {
       if (s.votes[idx] !== undefined) s.votes[idx]++;
     });
 
