@@ -1,10 +1,13 @@
 marked.use(markedKatex({ throwOnError: false }));
-marked.use({
-  renderer: {
-    link({ href, title, tokens }) {
-      const text = this.parser.parseInline(tokens);
-      return `<a href="${href}" target="_blank" rel="noopener noreferrer"${title ? ` title="${title}"` : ''}>${text}</a>`;
-    }
+
+// Question/answer links open in a new tab — clicking one during a live poll
+// shouldn't navigate away from the voting page. DOMPurify strips `target`
+// by default (reverse-tabnabbing protection), so it's re-added here alongside
+// rel="noopener noreferrer" to keep that protection intact.
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName === 'A') {
+    node.setAttribute('target', '_blank');
+    node.setAttribute('rel', 'noopener noreferrer');
   }
 });
 
