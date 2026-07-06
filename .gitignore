@@ -5,4 +5,5 @@ CLAUDE.md
 .claude/
 demo-paper/
 push_ghcr.sh
+.DS_Store
 
