@@ -542,6 +542,7 @@ function renderBarChart(answers, votes, total, correctIndices = []) {
 function previewQuestion(s) {
   return s
     .replace(/```[\s\S]*?```/gs, '')
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, (_, alt) => `[image: ${alt}]`)
     .replace(/\$\$([\s\S]*?)\$\$/gs, (_, m) => `$${m.replace(/\s+/g, ' ').trim()}$`)
     .replace(/\s+/g, ' ')
     .trim();

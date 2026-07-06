@@ -102,6 +102,13 @@ body {
   margin-bottom: 1rem;
 }
 
+/* Images embedded in question/answer Markdown must never overflow their card. */
+.card img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+}
+
 /* ─── Labels & meta ────────────────────────────────────────────── */
 .section-label {
   font-size: 11px;
