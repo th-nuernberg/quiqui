@@ -534,7 +534,9 @@ function renderBarChart(answers, votes, total, correctIndices = []) {
     const pct = total > 0 ? Math.round((count / total) * 100) : 0;
     const isCorrect = correctIndices.includes(i);
     const block = document.createElement('div');
-    block.className = 'answer-opt' + (isCorrect ? ' answer-correct' : '');
+    block.className = 'answer-opt'
+      + (isCorrect ? ' answer-correct' : '')
+      + (selectedQuestion?.type === 'multiple' ? ' opt-multi' : '');
     block.style.cursor = 'default';
     block.innerHTML = `
       <div class="opt-key">${keys[i] || i + 1}</div>

@@ -169,7 +169,7 @@ function showQuestion(question) {
   const keys = ['A', 'B', 'C', 'D', 'E', 'F'];
   question.answers.forEach((ans, i) => {
     const opt = document.createElement('div');
-    opt.className = 'answer-opt';
+    opt.className = 'answer-opt' + (question.type === 'multiple' ? ' opt-multi' : '');
     opt.dataset.index = i;
     opt.innerHTML = `
       <div class="opt-key">${keys[i] || i + 1}</div>

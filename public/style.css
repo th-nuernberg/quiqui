@@ -432,6 +432,7 @@ select:focus {
 .answer-opt.answer-correct .opt-key {
   background: #4caf50;
   color: #fff;
+  border-color: #4caf50;
 }
 
 .opt-key {
@@ -446,11 +447,19 @@ select:focus {
   font-weight: 500;
   flex-shrink: 0;
   color: var(--color-text-muted);
+  border: 1px solid var(--color-text-muted);
+}
+
+/* Multi-select answers use rounded-square keys (checkbox convention);
+   single-select keeps the round radio-style circle above. */
+.answer-opt.opt-multi .opt-key {
+  border-radius: 6px;
 }
 
 .answer-opt.selected .opt-key {
   background: var(--color-accent);
   color: #E6F1FB;
+  border-color: var(--color-accent);
 }
 
 .opt-bar-wrap {
