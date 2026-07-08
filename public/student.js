@@ -11,7 +11,10 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   }
 });
 
-const socket = io();
+// Reverse-proxy subpath the app is served under ("" at root). Injected by the
+// server as window.__BASE_PATH__; socket.io must connect under it.
+const BASE_PATH = window.__BASE_PATH__ || '';
+const socket = io({ path: `${BASE_PATH}/socket.io` });
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let currentQuestion = null;

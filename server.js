@@ -11,13 +11,29 @@ const yaml = require('js-yaml');
 const simpleGit = require('simple-git');
 const QRCode = require('qrcode');
 
+// Reverse-proxy path prefix the app is served under, e.g. "/quiqui". Empty means
+// the app owns the domain root (the default — Render, local dev). Set this when a
+// proxy forwards a subpath *without* stripping it (see README "Running behind a
+// reverse-proxy subpath"). Normalised to a single leading slash, no trailing slash.
+const BASE_PATH = (() => {
+  const raw = (process.env.BASE_PATH || '').trim().replace(/\/+$/, ''); // drop trailing slash(es)
+  if (!raw) return '';                                                  // empty → root deployment
+  return '/' + raw.replace(/^\/+/, '');                                 // exactly one leading slash
+})();
+
 const app = express();
 const server = http.createServer(app);
 // Heartbeat tolerant of an idle teacher (no action for a couple of minutes):
 // a missed pong within pingInterval + pingTimeout drops the connection, so keep
 // the window generous. The real recovery is the teacher re-joining its room on
 // reconnect (see public/teacher.js) — this just reduces how often that happens.
-const io = new Server(server, { pingInterval: 25000, pingTimeout: 60000 });
+// The socket.io endpoint lives under BASE_PATH too, so clients behind the proxy
+// reach it at `${BASE_PATH}/socket.io` (see the client `io()` calls).
+const io = new Server(server, {
+  pingInterval: 25000,
+  pingTimeout: 60000,
+  path: `${BASE_PATH}/socket.io`,
+});
 
 const LOG_LEVEL = (process.env.LOG_LEVEL || 'INFO').toUpperCase();
 const log = {
@@ -38,9 +54,9 @@ const VERSION_LINK = 'https://github.com/th-nuernberg/quiqui/releases';
 const VERSION_HTML =
   `<a href="${VERSION_LINK}" target="_blank" rel="noopener" title="Release notes on GitHub">Version ${APP_VERSION}</a>`;
 
-// 90 minutes after last question activation. Overridable via env only so the
-// test suite can force a fast expiry; production leaves it unset.
-const SESSION_TIMEOUT_MS = Number(process.env.SESSION_TIMEOUT_MS) || 90 * 60 * 1000;
+// 90 minutes after last question activation. Overridable via SESSION_TIMEOUT_MINUTES
+// (env, in minutes); the test suite can pass a fractional value to force a fast expiry.
+const SESSION_TIMEOUT_MS = (Number(process.env.SESSION_TIMEOUT_MINUTES) || 90) * 60 * 1000;
 const REPO_SIZE_LIMIT_KB = 1024;  // 1 MB — GitHub reports size in KB
 const FILE_SIZE_LIMIT_KB = 100;   // 100 KB per question file
 
@@ -66,16 +82,53 @@ setInterval(() => {
 // new deploy is never picked up. JS/CSS/fonts keep normal ETag revalidation.
 const noCacheHtml = res => res.set('Cache-Control', 'no-cache');
 
+// Under a reverse-proxy subpath the browser must resolve every relative asset
+// (style.css, socket.io, logo, …) against BASE_PATH, and client JS needs to know
+// the prefix for fetch()/socket paths. A single injected block does both:
+//   • <base href="${BASE_PATH}/"> — makes relative URLs resolve under the prefix.
+//     Requires the HTML to use *relative* asset paths (style.css, not /style.css).
+//   • window.__BASE_PATH__ — read by teacher.js/student.js/projector.js.
+// At root (BASE_PATH === '') href is "/" and the prefix is "", i.e. a no-op.
+const baseTag = `<base href="${BASE_PATH}/" />\n  <script>window.__BASE_PATH__ = ${JSON.stringify(BASE_PATH)};</script>`;
+const injectBase = html => html.replace('<head>', `<head>\n  ${baseTag}`);
+
 // Pages that carry the footer version link are read once at startup and have
-// their __VERSION__ placeholder substituted. index.html must be served by an
-// explicit route registered *before* express.static, otherwise the static
-// middleware would serve the raw (un-templated) file at '/'.
+// their __VERSION__ placeholder substituted, plus the <base> block injected.
+// index.html must be served by an explicit route registered *before*
+// express.static, otherwise the static middleware would serve the raw
+// (un-templated) file at '/'.
 const renderHtml = file =>
-  fs.readFileSync(path.join(__dirname, 'public', file), 'utf8').replace('__VERSION__', VERSION_HTML);
+  injectBase(fs.readFileSync(path.join(__dirname, 'public', file), 'utf8').replace('__VERSION__', VERSION_HTML));
 const indexHtml     = renderHtml('index.html');
 const studentHtml   = renderHtml('student.html');
 const privacyHtml   = renderHtml('privacy.html');
+const projectorHtml = renderHtml('projector.html');
 const sendHtml = (res, html) => noCacheHtml(res).type('html').send(html);
+
+// Prefix-strip middleware: when the app is served under a proxy subpath that is
+// *not* stripped by the proxy (e.g. requests arrive as /quiqui/api/pull), rewrite
+// req.url down to the root form (/api/pull) before any route matches. This keeps
+// every route definition below written against the root path — the prefix lives
+// in exactly this one place. A no-op when BASE_PATH is empty. socket.io is not
+// affected: it matches on its configured `path` before Express sees the request.
+//
+// Anything NOT under the prefix is 404'd rather than falling through to the root
+// routes: the app declares it lives at BASE_PATH, so it shouldn't also answer
+// off-prefix (e.g. serve /style.css when mounted at /quiqui). Real traffic only
+// ever arrives prefixed; this just refuses to double-serve.
+if (BASE_PATH) {
+  app.use((req, res, next) => {
+    if (req.url === BASE_PATH) {
+      // Bare prefix with no trailing slash (/quiqui) → treat as the root ('/').
+      req.url = '/';
+    } else if (req.url.startsWith(BASE_PATH + '/')) {
+      req.url = req.url.slice(BASE_PATH.length) || '/';
+    } else {
+      return res.status(404).type('txt').send('Not found');
+    }
+    next();
+  });
+}
 
 app.get('/', (req, res) => sendHtml(res, indexHtml));
 
@@ -195,9 +248,9 @@ app.use('/fonts', express.static(path.join(__dirname, 'node_modules', 'katex', '
 
 // Teacher page — default repo URL injected from DEFAULT_REPO_URL env var
 // (teacher.html lives in the project root, not public/ — see CLAUDE.md)
-const teacherHtml = fs.readFileSync(path.join(__dirname, 'teacher.html'), 'utf8')
+const teacherHtml = injectBase(fs.readFileSync(path.join(__dirname, 'teacher.html'), 'utf8')
   .replace('__DEFAULT_REPO_URL__', DEFAULT_REPO_URL.replace(/"/g, '&quot;'))
-  .replace('__VERSION__', VERSION_HTML);
+  .replace('__VERSION__', VERSION_HTML));
 app.get(`/${TEACHER_SLUG}`, (req, res) => {
   sendHtml(res, teacherHtml);
 });
@@ -209,7 +262,7 @@ app.get('/join/:sessionId', (req, res) => {
 
 // Projector view — read-only, shows QR + live results, optimised for beamer
 app.get('/view/:sessionId', (req, res) => {
-  noCacheHtml(res).sendFile(path.join(__dirname, 'public', 'projector.html'));
+  sendHtml(res, projectorHtml);
 });
 
 // Legal pages
@@ -217,7 +270,7 @@ app.get('/impressum', (req, res) => {
   const raw = req.query.back || '';
   // Accept same-site paths only — reject protocol-relative ("//evil.com") open redirects
   const back = ((raw.startsWith('/') && !raw.startsWith('//')) || raw.startsWith(`${req.protocol}://${req.hostname}`)) ? raw : null;
-  const logoHref = back || '/';
+  const logoHref = back || (BASE_PATH ? `${BASE_PATH}/` : '/');
   const backLink = back ? back : 'javascript:history.back()';
 
   function field(envVar, label) {
@@ -234,7 +287,8 @@ app.get('/impressum', (req, res) => {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Impressum — QuiQui</title>
-  <link rel="stylesheet" href="/style.css" />
+  ${baseTag}
+  <link rel="stylesheet" href="style.css" />
   <style>
     .lang-nav { display:flex; gap:1rem; margin-bottom:1.5rem; }
     .lang-nav a { font-size:13px; font-weight:500; color:var(--color-text-muted); text-decoration:none; padding:4px 12px; border:0.5px solid var(--color-border-mid); border-radius:99px; }
@@ -250,7 +304,7 @@ app.get('/impressum', (req, res) => {
 <body>
   <div class="page-wrap">
     <header class="top-bar">
-      <a href="${logoHref}"><img src="/quiqui-logo.png" alt="QuiQui" class="logo" /></a>
+      <a href="${logoHref}"><img src="quiqui-logo.png" alt="QuiQui" class="logo" /></a>
     </header>
     <main>
       <section class="card">
@@ -324,8 +378,8 @@ app.get('/impressum', (req, res) => {
       </p>
     </main>
     <footer class="site-footer">
-      <a href="/impressum${footerBack}">Impressum</a>
-      <a href="/privacy${footerBack}">Privacy Policy</a>
+      <a href="impressum${footerBack}">Impressum</a>
+      <a href="privacy${footerBack}">Privacy Policy</a>
       ${VERSION_HTML}
     </footer>
   </div>
@@ -519,8 +573,10 @@ app.get('/api/qr-public', async (req, res) => {
   if (!url) return res.status(400).json({ error: 'url is required' });
   // Only allow generating QR codes for join URLs on this same host — otherwise
   // this becomes a no-auth QR generator for any attacker-chosen URL served from
-  // our trusted domain (checking the path alone lets any host through).
-  const joinPattern = /^\/join\/[a-zA-Z0-9_-]+$/;
+  // our trusted domain (checking the path alone lets any host through). An
+  // optional leading path prefix is allowed so this still works behind a
+  // reverse proxy that mounts the app under a subpath (e.g. /quiqui/join/...).
+  const joinPattern = /^(?:\/[a-zA-Z0-9_-]+)*\/join\/[a-zA-Z0-9_-]+$/;
   let parsed;
   try { parsed = new URL(url); } catch { return res.status(400).json({ error: 'invalid url' }); }
   if (parsed.host !== req.headers.host || !joinPattern.test(parsed.pathname)) {
@@ -698,6 +754,6 @@ io.on('connection', (socket) => {
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 server.listen(PORT, () => {
-  log.info(`QuiQui running on http://localhost:${PORT}`);
-  log.info(`Teacher page: http://localhost:${PORT}/${TEACHER_SLUG}`);
+  log.info(`QuiQui running on http://localhost:${PORT}${BASE_PATH}`);
+  log.info(`Teacher page: http://localhost:${PORT}${BASE_PATH}/${TEACHER_SLUG}`);
 });

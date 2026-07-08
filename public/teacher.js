@@ -11,7 +11,11 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   }
 });
 
-const socket = io();
+// BASE_PATH is the reverse-proxy subpath the app is served under ("" at root,
+// "/quiqui" behind a non-stripping proxy). The server injects the authoritative
+// value as window.__BASE_PATH__; socket.io and every API fetch must target it.
+const BASE_PATH = window.__BASE_PATH__ || '';
+const socket = io({ path: `${BASE_PATH}/socket.io` });
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let questions = [];
@@ -33,8 +37,11 @@ let runTimer = null;     // setInterval handle for the live stopwatch
 // it is an unsolicited (server-side) close, which falls back to setState('closed').
 let selfInitiatedClose = false;
 
-// Slug is the path segment this page was loaded from — used as the teacher token
-const TEACHER_TOKEN = window.location.pathname.replace(/^\//, '').split('/')[0];
+// Slug is the last path segment this page was loaded from — used as the teacher
+// token. Using the last (not first) segment keeps this correct if the app is
+// served behind a reverse-proxy path prefix (e.g. /quiqui/teach-xk92p).
+const pathSegments = window.location.pathname.split('/').filter(Boolean);
+const TEACHER_TOKEN = pathSegments[pathSegments.length - 1] || '';
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const repoInput        = document.getElementById('repo-url');
@@ -89,7 +96,7 @@ async function pullRepo() {
   setStatus('Cloning…');
 
   try {
-    const res = await fetch('/api/pull', {
+    const res = await fetch(`${BASE_PATH}/api/pull`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Teacher-Token': TEACHER_TOKEN },
       body: JSON.stringify({ repo }),
@@ -114,10 +121,10 @@ async function pullRepo() {
     // on a freshly-pulled session. Without this the teacher only joins on
     // activate/reconnect and would miss an expiry of a not-yet-activated session.
     socket.emit('join-session', { sessionId: currentSessionId });
-    const joinUrl = `${location.origin}/join/${currentSessionId}`;
+    const joinUrl = `${location.origin}${BASE_PATH}/join/${currentSessionId}`;
     joinUrlEl.textContent = joinUrl;
     joinUrlEl.href = joinUrl;
-    const projectorUrl = `${location.origin}/view/${currentSessionId}`;
+    const projectorUrl = `${location.origin}${BASE_PATH}/view/${currentSessionId}`;
     const projectorUrlEl = document.getElementById('projector-url');
     projectorUrlEl.textContent = projectorUrl;
     projectorUrlEl.href = projectorUrl;
@@ -159,7 +166,7 @@ async function loadFile() {
   if (!file) { sectionQuestions.style.display = 'none'; return; }
 
   try {
-    const res = await fetch(`/api/questions?file=${encodeURIComponent(file)}&sessionId=${encodeURIComponent(currentSessionId)}`, {
+    const res = await fetch(`${BASE_PATH}/api/questions?file=${encodeURIComponent(file)}&sessionId=${encodeURIComponent(currentSessionId)}`, {
       headers: { 'X-Teacher-Token': TEACHER_TOKEN },
     });
     const data = await res.json();
@@ -441,7 +448,7 @@ function setShortlink(shortlink) {
 // ─── QR code ──────────────────────────────────────────────────────────────────
 async function fetchQR(url) {
   try {
-    const res = await fetch(`/api/qr?url=${encodeURIComponent(url)}`, {
+    const res = await fetch(`${BASE_PATH}/api/qr?url=${encodeURIComponent(url)}`, {
       headers: { 'X-Teacher-Token': TEACHER_TOKEN },
     });
     const data = await res.json();

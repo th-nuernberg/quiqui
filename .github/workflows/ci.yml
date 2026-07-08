@@ -58,3 +58,31 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/quiqui:latest
             ghcr.io/${{ github.repository_owner }}/quiqui:${{ github.ref_name }}
+
+  release:
+    needs: build-and-push
+    # Create the GitHub Release for the pushed tag, so a `git tag vX.Y.Z`
+    # is the single action that both publishes the image and cuts the release.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # need full history for auto-generated notes
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Idempotent: skip if a release for this tag already exists (e.g. one
+        # was cut manually before the tag reached CI).
+        run: |
+          if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
+            echo "Release ${{ github.ref_name }} already exists — skipping."
+          else
+            gh release create "${{ github.ref_name }}" \
+              --title "${{ github.ref_name }}" \
+              --generate-notes
+          fi

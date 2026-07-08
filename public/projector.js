@@ -11,7 +11,10 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   }
 });
 
-const socket = io();
+// Reverse-proxy subpath the app is served under ("" at root). Injected by the
+// server as window.__BASE_PATH__; socket.io must connect under it.
+const BASE_PATH = window.__BASE_PATH__ || '';
+const socket = io({ path: `${BASE_PATH}/socket.io` });
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let currentQuestion = null;
@@ -51,7 +54,7 @@ window.addEventListener('resize', fitScreen);
 fitScreen();
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
-const joinUrl = `${location.origin}/join/${getSessionId()}`;
+const joinUrl = `${location.origin}${BASE_PATH}/join/${getSessionId()}`;
 
 (function init() {
   const sessionId = getSessionId();
@@ -84,7 +87,7 @@ function getSessionId() {
 
 async function fetchQR(url) {
   try {
-    const res = await fetch(`/api/qr-public?url=${encodeURIComponent(url)}`);
+    const res = await fetch(`${BASE_PATH}/api/qr-public?url=${encodeURIComponent(url)}`);
     const data = await res.json();
     if (data.dataUrl) qrImg.src = data.dataUrl;
   } catch (_) {}

@@ -4,14 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>QuiQui</title>
-  <link rel="stylesheet" href="/style.css" />
-  <link rel="stylesheet" href="/katex.min.css" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="katex.min.css" />
 </head>
 <body>
 
   <div class="page-wrap page-wrap--narrow">
     <header class="top-bar">
-      <a href="https://github.com/th-nuernberg/quiqui" target="_blank" rel="noopener" title="QuiQui on GitHub"><img src="/quiqui-logo.png" alt="QuiQui" class="logo" id="logo" /></a>
+      <a href="https://github.com/th-nuernberg/quiqui" target="_blank" rel="noopener" title="QuiQui on GitHub"><img src="quiqui-logo.png" alt="QuiQui" class="logo" id="logo" /></a>
       <span class="logo-title" id="logo-title"></span>
     </header>
 
@@ -39,23 +39,24 @@
   </div>
 
   <footer class="site-footer">
-    <a href="/impressum" id="footer-impressum">Impressum</a>
-    <a href="/privacy" id="footer-privacy">Privacy Policy</a>
+    <a href="impressum" id="footer-impressum">Impressum</a>
+    <a href="privacy" id="footer-privacy">Privacy Policy</a>
     __VERSION__
   </footer>
 
   <script>
     (function() {
       const back = encodeURIComponent(location.href);
-      document.getElementById('footer-impressum').href = '/impressum?back=' + back;
-      document.getElementById('footer-privacy').href = '/privacy?back=' + back;
+      const bp = window.__BASE_PATH__ || '';
+      document.getElementById('footer-impressum').href = bp + '/impressum?back=' + back;
+      document.getElementById('footer-privacy').href = bp + '/privacy?back=' + back;
     })();
   </script>
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/marked.min.js"></script>
-  <script src="/katex.min.js"></script>
-  <script src="/katex-extension.js"></script>
-  <script src="/purify.min.js"></script>
-  <script src="/student.js"></script>
+  <script src="socket.io/socket.io.js"></script>
+  <script src="marked.min.js"></script>
+  <script src="katex.min.js"></script>
+  <script src="katex-extension.js"></script>
+  <script src="purify.min.js"></script>
+  <script src="student.js"></script>
 </body>
 </html>

@@ -1,38 +1,45 @@
 <img src="public/quiqui-logo.png" alt="QuiQui" width="240" />
 
-# Live quiz & audience response tool for lectures — no apps, no accounts, no database
+# Live quiz & audience response tool for lectures — no accounts, no database, just yaml questions
 
-**QuiQui — short for *quick quiz* — is a free, open-source live quiz tool that turns any lecture into a live poll in seconds.** You activate a question, students scan a QR code and answer on their phones, and the whole room watches the results fill in on a live bar chart. Reveal the correct answer whenever you like — it lights up green for everyone at once.
+**QuiQui — short for *quick quiz* — is a free, open-source live quiz tool that turns any lecture into a live poll in seconds.** 
 
-No student sign-up. No app to install. No admin panel to click through — **your questions are just YAML files in a GitHub repo.**
+No teacher or student sign-up. No app to install. No login. No admin panel to click through — **your questions are just YAML files in a GitHub repo.** 
+See [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiqui-questions) for example.
 
-**→ [Try the live demo](https://quiqui-x9um.onrender.com)** — hosted instance (may take ~30s to wake on first visit)
-**→ [Quickstart for lecturers](QUICKSTART.md)** — your own quiz running in 5 minutes
+You activate a question, students scan a QR code and answer on their phones, and the whole room watches the results fill in on a live bar chart. Reveal the correct answer whenever you like — it lights up green for everyone at once.
+
+**→ [Try the live demo](https://quiqui-x9um.onrender.com)** — hosted instance (may take ~30s to wake on first visit)  
+**→ [Quickstart for lecturers](QUICKSTART.md)** — your own quiz running in 5 minutes  
 **→ [FAQ](FAQ.md)** — common questions answered
 
 ---
 
 ## Why QuiQui?
 
-Commercial quiz and poll tools want an account, a subscription, your students' data, and a lot of clicking. QuiQui does one thing: **live in-class polling, stripped to the essentials.**
+Commercial quiz and poll tools want an account, a subscription, your students' data, and a lot of tedious clicking to create your questions. 
+QuiQui makes **live in-class polling as simple as possible.**
 
-📝 **Your questions are plain text in Git**
+**Your questions are plain text in Git**
 Write questions as simple YAML in a public GitHub repo. Version them, diff them, copy them between courses, edit them in your favourite editor. No clunky web form, no vendor lock-in — pull the latest into a session anytime.
 
-🧮 **Built for real teaching content**
+**Built for real teaching content**
 Full **Markdown and LaTeX** support in questions *and* answers — code blocks, inline code, and proper math render beautifully. Single- and multiple-choice per question.
 
-🎯 **Zero friction for students**
+**Zero friction for students**
 They scan a QR code (or type a short URL) and they're in. No login, no app, no email. Works on any phone with a browser.
 
-📊 **Live results, teacher-paced**
+**Live results, teacher-paced**
 You decide which question is live — students can't skip ahead. The bar chart updates in real time as votes land, then you **reveal the correct answer** with one click and it turns green on every screen in the room.
 
-🖥️ **A view for every screen**
+**A view for every screen**
 A dedicated **projector view** shows the QR code and live results on the beamer, while you drive everything from the teacher view — complete with a live stopwatch so you know how long voting's been open.
 
-🪶 **Yours to run, free and private**
+**Yours to run, free and private**
 No database, no tracking, no scoring leaderboards. Session state lives in memory and vanishes when the quiz ends. **Self-host it anywhere Node.js runs** — there's no build step. One instance happily serves many lecturers at once.
+
+**Use our hosted service**
+There is always an instance running on [kiz1.in.ohmportal.de/quiqui](http://kiz1.in.ohmportal.de/quiqui). To get access as a lecturer, just ask for the teacher URL — [reach out to us](http://kiz1.in.ohmportal.de/quiqui/impressum#en) at the address on our Impressum.
 
 ---
 
@@ -52,6 +59,14 @@ No database, no tracking, no scoring leaderboards. Session state lives in memory
 - **Multiple concurrent sessions** — each repo's `session_url` defines an independent session; the URL must be unique per lecturer (e.g. `tum-python101`), as two sessions with the same `session_url` from different repos cannot coexist
 - **No database** — all session state is in memory and intentionally ephemeral
 - **No build step** — vanilla HTML/CSS/JS frontend, deploy anywhere Node.js runs
+
+---
+
+## Question format
+
+Questions live in a **public GitHub repository**, one `.yaml` file per lecture. See [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiqui-questions) for the full format reference and working examples.
+
+> **Limits:** QuiQui checks the repository size via the GitHub API before cloning and rejects repos larger than **1 MB**. Individual question files larger than **100 KB** are rejected when loaded. Each question may have at most **6 answer options**. YAML files are validated on load — format errors are shown as a clear error message in the teacher view.
 
 ---
 
@@ -120,21 +135,82 @@ docker run -p 3000:3000 -e TEACHER_SLUG=teach-xk92p ghcr.io/th-nuernberg/quiqui:
 
 The container includes git, required at runtime to clone question repositories — no extra setup needed. Sessions are in-memory only, so they're lost on container restart, same as running the server directly.
 
-### Tests
+**Behind a reverse proxy on a subpath (e.g. `https://your-domain/quiqui`):** there are two ways to do this — pick whichever fits your proxy.
+
+*Option A — the proxy strips the prefix (simplest).* Forward the subpath to the container with the prefix removed, so the container still receives root-relative requests. Leave `BASE_PATH` unset. Note the trailing `/` on both lines — that's what triggers the rewrite:
+
+```nginx
+location /quiqui/ {
+    proxy_pass http://container:3000/;   # trailing slash strips /quiqui
+    proxy_set_header Host $host;
+}
+```
+
+*Option B — the proxy passes the prefix through unchanged.* Some setups keep the full path (`/quiqui/...` reaches the container as-is) — for example when the proxy's access/filter rules are written against the public path and a rewrite would bypass them. In that case set `BASE_PATH` to the subpath so the app mounts all routes, assets, and the socket.io endpoint under it:
+
+```nginx
+location /quiqui/ {
+    proxy_pass http://container:3000;    # no trailing slash — path passed through
+    proxy_set_header Host $host;
+}
+```
+
+```bash
+BASE_PATH=/quiqui   # in .env — no trailing slash
+```
+
+In both cases the proxy must pass through the original `Host` header (and the usual `Upgrade`/`Connection` headers for the Socket.io WebSocket). `BASE_PATH` defaults to empty, so a root deployment needs no configuration.
+
+---
+
+## Deployment
+
+A hosted demo instance runs at [quiqui-x9um.onrender.com](https://quiqui-x9um.onrender.com) (may take ~30s to wake on first visit). To run your own, deploy the Docker image or the Node server anywhere Node.js runs — QuiQui keeps no persistent state, so no database or volumes are needed.
+
+### Releases
+
+Releases are cut from version tags. Pushing a `v*` tag triggers the CI pipeline (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)), which — only after the test suite passes:
+
+1. builds and publishes the Docker image to [`ghcr.io/th-nuernberg/quiqui`](https://github.com/th-nuernberg/quiqui/pkgs/container/quiqui), tagged `:latest` and `:<version>`, and
+2. creates the matching [GitHub Release](https://github.com/th-nuernberg/quiqui/releases) with auto-generated notes.
+
+So a release is a single, explicit, tested action:
+
+```bash
+npm version patch        # bumps package.json + package-lock, creates the vX.Y.Z tag
+git push --follow-tags   # pushes the commit and the tag → CI does the rest
+```
+
+Pushes to `main` and pull requests run the tests but do not publish or release.
+
+---
+
+## Tests
 
 ```bash
 npm test
 ```
 
-An end-to-end suite in [`test/security.test.js`](test/security.test.js) boots the real server on a throwaway port and drives it over HTTP and Socket.io to verify the security-relevant behaviour: server-side vote validation (dedupe + single-choice enforcement), the voter-count cap, room-scoped session expiry (so concurrent sessions can't disturb each other), the `/api/qr-public` host restriction, and `session_url` validation. It also runs `npm audit` in CI. Some checks clone the public companion question repo; if GitHub is unreachable those are skipped rather than failed, so the suite still runs offline. The suite runs automatically on every push to `main` and on pull requests (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)). The Docker image is built and published only when a version tag (`v*`) is pushed, and only after the tests pass — so a release is an explicit, tested `git tag`.
+An end-to-end suite in [`test/security.test.js`](test/security.test.js) boots the real server on a throwaway port and drives it over HTTP and Socket.io to verify the security-relevant behaviour: server-side vote validation (dedupe + single-choice enforcement), the voter-count cap, room-scoped session expiry (so concurrent sessions can't disturb each other), the `/api/qr-public` host restriction, and `session_url` validation. It also runs `npm audit` in CI. Some checks clone the public companion question repo; if GitHub is unreachable those are skipped rather than failed, so the suite still runs offline. The suite runs automatically on every push to `main` and on pull requests (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 ---
 
-## Question format
+## Security model
 
-Questions live in a **public GitHub repository**, one `.yaml` file per lecture. See [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiqui-questions) for the full format reference and working examples.
+QuiQui uses a shared-secret approach suited for lecture deployments:
 
-> **Limits:** QuiQui checks the repository size via the GitHub API before cloning and rejects repos larger than **1 MB**. Individual question files larger than **100 KB** are rejected when loaded. Each question may have at most **6 answer options**. YAML files are validated on load — format errors are shown as a clear error message in the teacher view.
+- **Teacher page** is only reachable at `/:teacherSlug` — the HTML file is not accessible as a static asset
+- **Teacher API endpoints** (`/api/pull`, `/api/questions`, `/api/qr`, `/api/session`) require an `X-Teacher-Token` header matching the slug
+- **Teacher socket events** (`activate-question`, `deactivate-question`, `show-answer`, `close-question`) require a `token` field matching the slug
+- **Student endpoints** (`/join/:sessionId`, socket events) are intentionally open — no login required
+- **Only public GitHub repos** are accepted — `file://` and `ssh://` URLs are rejected; repo size is checked via the GitHub API before cloning
+- **Untrusted question content is sanitised** — question and answer text comes from a public GitHub repo (which the teacher may not control), so it is treated as untrusted. The client renders Markdown/LaTeX with `marked` + KaTeX and then runs the result through [DOMPurify](https://github.com/cure53/DOMPurify) before inserting it into the page, preventing stored XSS from a malicious repo. DOMPurify's default profile permits HTML, SVG, and MathML, so KaTeX's rendered math is preserved. This applies to the teacher, student, and projector views alike.
+
+**Multiple lecturers, one instance.** A single deployment safely supports many concurrent sessions — each is isolated by its `session_url` (see [Features](#full-feature-list)), so lecturers never see or affect one another's questions, votes, or results. The one thing to know is that the teacher slug is a *single shared secret*: anyone who knows it can control any session on the instance. If your lecturers should not be able to act on each other's sessions, give each their own deployment with its own `TEACHER_SLUG`.
+
+The slug is a shared secret, not real authentication — keep your instance behind HTTPS so it can't be read off the wire.
+
+These properties — vote-tally integrity, session isolation, and the input restrictions above — are covered by the [test suite](#tests), which runs on every push and pull request.
 
 ---
 
@@ -185,25 +261,6 @@ Everything in `public/` is served statically and is publicly accessible by filen
 | `close-question` | client → server | `{ sessionId, token }` | Teacher sends students back to waiting screen |
 | `question-closed` | server → clients | — | Students return to waiting screen; active question cleared |
 | `session-expired` | server → clients | — | Session timed out; teacher UI locked, students see "no session" message |
-
----
-
-## Security model
-
-QuiQui uses a shared-secret approach suited for lecture deployments:
-
-- **Teacher page** is only reachable at `/:teacherSlug` — the HTML file is not accessible as a static asset
-- **Teacher API endpoints** (`/api/pull`, `/api/questions`, `/api/qr`, `/api/session`) require an `X-Teacher-Token` header matching the slug
-- **Teacher socket events** (`activate-question`, `deactivate-question`, `show-answer`, `close-question`) require a `token` field matching the slug
-- **Student endpoints** (`/join/:sessionId`, socket events) are intentionally open — no login required
-- **Only public GitHub repos** are accepted — `file://` and `ssh://` URLs are rejected; repo size is checked via the GitHub API before cloning
-- **Untrusted question content is sanitised** — question and answer text comes from a public GitHub repo (which the teacher may not control), so it is treated as untrusted. The client renders Markdown/LaTeX with `marked` + KaTeX and then runs the result through [DOMPurify](https://github.com/cure53/DOMPurify) before inserting it into the page, preventing stored XSS from a malicious repo. DOMPurify's default profile permits HTML, SVG, and MathML, so KaTeX's rendered math is preserved. This applies to the teacher, student, and projector views alike.
-
-**Multiple lecturers, one instance.** A single deployment safely supports many concurrent sessions — each is isolated by its `session_url` (see [Features](#features)), so lecturers never see or affect one another's questions, votes, or results. The one thing to know is that the teacher slug is a *single shared secret*: anyone who knows it can control any session on the instance. If your lecturers should not be able to act on each other's sessions, give each their own deployment with its own `TEACHER_SLUG`.
-
-The slug is a shared secret, not real authentication — keep your instance behind HTTPS so it can't be read off the wire.
-
-These properties — vote-tally integrity, session isolation, and the input restrictions above — are covered by the [test suite](#tests), which runs on every push and pull request.
 
 ---
 

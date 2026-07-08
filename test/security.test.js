@@ -13,7 +13,7 @@
 // project's no-build ethos. Run with `npm test`.
 //
 // One test (#2 expiry) needs a session to time out, so the server is started
-// with SESSION_TIMEOUT_MS lowered via env. Tests that need a live session pull
+// with SESSION_TIMEOUT_MINUTES lowered via env. Tests that need a live session pull
 // the public companion repo; if GitHub is unreachable those are skipped (not
 // failed) so the suite still runs offline.
 
@@ -176,7 +176,9 @@ async function run() {
 // ── Harness: boot the server, wait for it, run, tear down ────────────────────
 (async () => {
   const server = spawn('node', [path.join(__dirname, '..', 'server.js')], {
-    env: { ...process.env, PORT: String(PORT), TEACHER_SLUG: SLUG, SESSION_TIMEOUT_MS: String(SESSION_TIMEOUT_MS), LOG_LEVEL: 'ERROR', GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: 'true', GIT_PAGER: 'cat' },
+    // BASE_PATH pinned empty so this suite always exercises the root deployment,
+    // even if a developer's .env sets a proxy prefix (dotenv won't override it).
+    env: { ...process.env, PORT: String(PORT), TEACHER_SLUG: SLUG, BASE_PATH: '', SESSION_TIMEOUT_MINUTES: String(SESSION_TIMEOUT_MS / 60000), LOG_LEVEL: 'ERROR', GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: 'true', GIT_PAGER: 'cat' },
     stdio: ['ignore', 'ignore', 'inherit'],
   });
 
