@@ -286,9 +286,9 @@ function selectQuestion(index) {
       const letters = (Array.isArray(correct) ? correct : [correct])
         .map(l => String(l).trim()[0].toUpperCase())
         .join(', ');
-      explanationEl.textContent = `${letters}: ${selectedQuestion.explanation}`;
+      explanationEl.innerHTML = `${letters}: ${mdInline(selectedQuestion.explanation)}`;
     } else {
-      explanationEl.textContent = selectedQuestion.explanation;
+      explanationEl.innerHTML = mdInline(selectedQuestion.explanation);
     }
     explanationEl.style.display = '';
   } else {
