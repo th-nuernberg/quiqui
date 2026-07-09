@@ -126,7 +126,7 @@ async function pullRepo(force = false) {
     }
 
     // Populate file dropdown
-    fileSelect.innerHTML = '<option value="">— select a lecture file —</option>';
+    fileSelect.innerHTML = '<option value="">— select a question file —</option>';
     data.files.forEach(f => {
       const opt = document.createElement('option');
       opt.value = f;
