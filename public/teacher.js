@@ -168,6 +168,7 @@ async function pullRepo(force = false) {
     history.replaceState(null, '', url);
 
     setStatus(`Pulled ${data.files.length} file(s).`);
+    btnPull.className = 'btn-light';
     sectionQuestions.style.display = 'none';
     parkActiveCard();
     questionList.innerHTML = '';
