@@ -8,10 +8,10 @@
 
 ### How do I open a quiz fastest during the lecture?
 
-Bookmark your full teacher URL — the one that already contains your question repo, e.g.:
+Bookmark your full host URL — the one that already contains your question repo, e.g.:
 
 ```
-https://kiz1.in.ohmportal.de/quiqui/<teacher-slug>?repo=https://github.com/you/quiqui-questions
+https://kiz1.in.ohmportal.de/quiqui/<host-slug>?repo=https://github.com/you/quiqui-questions
 ```
 
 Opening it pulls your questions and shows the QR code automatically — no further setup. Save it as a browser bookmark or drop it on your laptop or phone home screen, and you're one click from a running session at the start of every lecture.
@@ -38,9 +38,9 @@ You can use [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiq
 
 ---
 
-### Can I build graded tests with multiple questions that students complete on their own?
+### Can I build graded tests with multiple questions that participants complete on their own?
 
-No. QuiQui is a live, teacher-paced response tool with no login, and it deliberately stores no per-student results — votes are anonymous and vanish when the session ends. If you need self-paced tests with grading and a gradebook, use Moodle or a similar platform instead.
+No. QuiQui is a live, host-paced response tool with no login, and it deliberately stores no per-participant results — votes are anonymous and vanish when the session ends. If you need self-paced tests with grading and a gradebook, use Moodle or a similar platform instead.
 
 ---
 

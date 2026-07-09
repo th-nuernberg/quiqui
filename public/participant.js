@@ -26,10 +26,10 @@ let currentSessionToken = null;
 const screenWaiting   = document.getElementById('screen-waiting');
 const screenQuestion  = document.getElementById('screen-question');
 const typeHint        = document.getElementById('type-hint');
-const questionText    = document.getElementById('student-q-text');
-const answerList      = document.getElementById('student-answer-list');
+const questionText    = document.getElementById('participant-q-text');
+const answerList      = document.getElementById('participant-answer-list');
 const btnSubmit       = document.getElementById('btn-submit');
-const resultMeta      = document.getElementById('student-result-meta');
+const resultMeta      = document.getElementById('participant-result-meta');
 // ─── Init ─────────────────────────────────────────────────────────────────────
 (function init() {
   const sessionId = getSessionId();
@@ -41,7 +41,7 @@ const resultMeta      = document.getElementById('student-result-meta');
 // Join (and re-join) the session room on every (re)connect. A reconnect gives us
 // a new socket id that is not in the room, so joining only once at page load would
 // silently stop all broadcasts (question-activated, vote-update, …) after an idle
-// drop — the student screen would freeze and never advance.
+// drop — the participant screen would freeze and never advance.
 socket.on('connect', () => {
   const sessionId = getSessionId();
   if (sessionId) socket.emit('join-session', { sessionId });
@@ -77,7 +77,7 @@ socket.on('session-state', ({ exists, question, open, title, answersRevealed, de
   }
 });
 
-// Teacher pushes a new question
+// Host pushes a new question
 socket.on('question-activated', ({ question, votes, total, title, sessionToken }) => {
   if (sessionToken) currentSessionToken = sessionToken;
   if (title) applyTitle(title);
@@ -101,7 +101,7 @@ socket.on('vote-update', ({ votes, total }) => {
   resultMeta.textContent = `${total} answer${total !== 1 ? 's' : ''} submitted`;
 });
 
-// Teacher deactivated — show bars without highlights, disable submit
+// Host deactivated — show bars without highlights, disable submit
 socket.on('question-deactivated', ({ votes, total }) => {
   if (!currentQuestion) return;
   submitted = true;
@@ -112,7 +112,7 @@ socket.on('question-deactivated', ({ votes, total }) => {
   resultMeta.textContent = 'Voting has ended.';
 });
 
-// Teacher revealed correct answers — highlight them, disable submit, show bars
+// Host revealed correct answers — highlight them, disable submit, show bars
 socket.on('answer-revealed', ({ correctIndices, votes, total }) => {
   if (!currentQuestion) return;
   const hadSubmitted = submitted;
@@ -127,7 +127,7 @@ socket.on('answer-revealed', ({ correctIndices, votes, total }) => {
   highlightCorrect(correctIndices);
 });
 
-// Teacher closed — return to waiting screen
+// Host closed — return to waiting screen
 socket.on('question-closed', () => {
   currentQuestion = null;
   submitted = false;
@@ -147,7 +147,7 @@ socket.on('session-expired', ({ sessionId } = {}) => {
   showScreen('waiting');
 });
 
-// Teacher pulled a new repo — update message for students already on the waiting screen
+// Host pulled a new repo — update message for participants already on the waiting screen
 socket.on('session-created', ({ title, sessionToken }) => {
   if (sessionToken) currentSessionToken = sessionToken;
   if (title) applyTitle(title);

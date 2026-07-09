@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>QuiQui — Teacher</title>
+  <title>QuiQui — Host</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="katex.min.css" />
@@ -13,7 +13,7 @@
   <div class="page-wrap">
     <header class="top-bar">
       <a href="https://github.com/th-nuernberg/quiqui" target="_blank" rel="noopener" title="QuiQui on GitHub"><img src="quiqui-logo.png" alt="QuiQui" class="logo" id="logo" /></a>
-      <span class="top-bar-role">Teacher View</span>
+      <span class="top-bar-role">Host View</span>
       <span class="connection-indicator" id="connection-indicator" title="Disconnected — reconnecting…"></span>
       <a class="top-bar-help" href="https://github.com/th-nuernberg/quiqui/blob/main/QUICKSTART.md" target="_blank" rel="noopener">Help</a>
     </header>
@@ -46,10 +46,10 @@
             <div class="join-links">
               <div class="section-label">Projector view</div>
               <a class="join-url" id="projector-url" href="" target="_blank" rel="noopener" title="Read-only view with QR code and live results — open in your browser for the beamer"></a>
-              <div class="section-label join-links__label">Students join at</div>
-              <a class="join-url" id="join-url" href="" target="_blank" rel="noopener" title="Share this URL or the QR code with students to join the session"></a>
+              <div class="section-label join-links__label">Participants join at</div>
+              <a class="join-url" id="join-url" href="" target="_blank" rel="noopener" title="Share this URL or the QR code with participants to join the session"></a>
               <div class="section-label join-links__label" id="shortlink-label" style="display:none;">Or via shortlink</div>
-              <a class="join-url" id="shortlink-url" href="" target="_blank" rel="noopener" title="Custom shortlink from your config.yaml — make sure it points to the student join URL above" style="display:none;"></a>
+              <a class="join-url" id="shortlink-url" href="" target="_blank" rel="noopener" title="Custom shortlink from your config.yaml — make sure it points to the participant join URL above" style="display:none;"></a>
             </div>
           </div>
         </div>
@@ -76,7 +76,7 @@
           <!-- populated by JS -->
         </div>
 
-        <!-- Explanation (teacher only) -->
+        <!-- Explanation (host only) -->
         <div class="meta-line" id="explanation" style="display:none;"></div>
 
         <!-- Controls -->
@@ -110,6 +110,6 @@
   <script src="katex.min.js"></script>
   <script src="katex-extension.js"></script>
   <script src="purify.min.js"></script>
-  <script src="teacher.js"></script>
+  <script src="host.js"></script>
 </body>
 </html>

@@ -38,7 +38,7 @@ function skip(name, why) { skipped++; console.log(`  skip ${name} (${why})`); }
 async function post(pathname, body) {
   const res = await fetch(BASE + pathname, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Teacher-Token': SLUG },
+    headers: { 'Content-Type': 'application/json', 'X-Host-Token': SLUG },
     body: JSON.stringify(body),
   });
   return { status: res.status, json: await res.json().catch(() => ({})) };
@@ -143,7 +143,7 @@ async function run() {
   }
 
   // ── #2: session-expired is room-scoped ──────────────────────────────────────
-  console.log('#2 session-expired is room-scoped, teacher notified before activation');
+  console.log('#2 session-expired is room-scoped, host notified before activation');
   {
     const A = await pullDemo();                                   // session "demo"
     // A second, independent session via a config-less repo → random hex id.
@@ -161,9 +161,9 @@ async function run() {
       await wait(SESSION_TIMEOUT_MS + 3500);
       clearInterval(keep);
       ok(aEvents.length >= 1 && aEvents.every(p => p && p.sessionId === A),
-         'teacher A (never activated) gets expiry tagged with its own sessionId');
+         'host A (never activated) gets expiry tagged with its own sessionId');
       ok(bEvents.length === 0, 'concurrent session B receives no expiry');
-      const sess = await (await fetch(`${BASE}/api/session?sessionId=${B}`, { headers: { 'X-Teacher-Token': SLUG } })).json();
+      const sess = await (await fetch(`${BASE}/api/session?sessionId=${B}`, { headers: { 'X-Host-Token': SLUG } })).json();
       ok(sess.session !== null, 'concurrent session B is still alive on the server');
       la.close(); lb.close(); tb.close();
     }
@@ -212,7 +212,7 @@ async function run() {
   const server = spawn('node', [path.join(__dirname, '..', 'server.js')], {
     // BASE_PATH pinned empty so this suite always exercises the root deployment,
     // even if a developer's .env sets a proxy prefix (dotenv won't override it).
-    env: { ...process.env, PORT: String(PORT), TEACHER_SLUG: SLUG, BASE_PATH: '', SESSION_TIMEOUT_MINUTES: String(SESSION_TIMEOUT_MS / 60000), LOG_LEVEL: 'ERROR', GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: 'true', GIT_PAGER: 'cat' },
+    env: { ...process.env, PORT: String(PORT), HOST_SLUG: SLUG, BASE_PATH: '', SESSION_TIMEOUT_MINUTES: String(SESSION_TIMEOUT_MS / 60000), LOG_LEVEL: 'ERROR', GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: 'true', GIT_PAGER: 'cat' },
     stdio: ['ignore', 'ignore', 'inherit'],
   });
 

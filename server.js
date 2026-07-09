@@ -23,10 +23,10 @@ const BASE_PATH = (() => {
 
 const app = express();
 const server = http.createServer(app);
-// Heartbeat tolerant of an idle teacher (no action for a couple of minutes):
+// Heartbeat tolerant of an idle host (no action for a couple of minutes):
 // a missed pong within pingInterval + pingTimeout drops the connection, so keep
-// the window generous. The real recovery is the teacher re-joining its room on
-// reconnect (see public/teacher.js) — this just reduces how often that happens.
+// the window generous. The real recovery is the host re-joining its room on
+// reconnect (see public/host.js) — this just reduces how often that happens.
 // The socket.io endpoint lives under BASE_PATH too, so clients behind the proxy
 // reach it at `${BASE_PATH}/socket.io` (see the client `io()` calls).
 const io = new Server(server, {
@@ -42,7 +42,7 @@ const log = {
 };
 
 const PORT = process.env.PORT || 3000;
-const TEACHER_SLUG = process.env.TEACHER_SLUG || 'teach';
+const HOST_SLUG = process.env.HOST_SLUG || 'host';
 const DEFAULT_REPO_URL = process.env.DEFAULT_REPO_URL || 'https://github.com/th-nuernberg/quiqui-questions';
 const SESSIONS_DIR = path.join(__dirname, 'tmp', 'sessions');
 
@@ -87,7 +87,7 @@ const noCacheHtml = res => res.set('Cache-Control', 'no-cache');
 // the prefix for fetch()/socket paths. A single injected block does both:
 //   • <base href="${BASE_PATH}/"> — makes relative URLs resolve under the prefix.
 //     Requires the HTML to use *relative* asset paths (style.css, not /style.css).
-//   • window.__BASE_PATH__ — read by teacher.js/student.js/projector.js.
+//   • window.__BASE_PATH__ — read by host.js/participant.js/projector.js.
 // At root (BASE_PATH === '') href is "/" and the prefix is "", i.e. a no-op.
 const baseTag = `<base href="${BASE_PATH}/" />\n  <script>window.__BASE_PATH__ = ${JSON.stringify(BASE_PATH)};</script>`;
 const injectBase = html => html.replace('<head>', `<head>\n  ${baseTag}`);
@@ -99,10 +99,10 @@ const injectBase = html => html.replace('<head>', `<head>\n  ${baseTag}`);
 // (un-templated) file at '/'.
 const renderHtml = file =>
   injectBase(fs.readFileSync(path.join(__dirname, 'public', file), 'utf8').replace('__VERSION__', VERSION_HTML));
-const indexHtml     = renderHtml('index.html');
-const studentHtml   = renderHtml('student.html');
-const privacyHtml   = renderHtml('privacy.html');
-const projectorHtml = renderHtml('projector.html');
+const indexHtml       = renderHtml('index.html');
+const participantHtml = renderHtml('participant.html');
+const privacyHtml     = renderHtml('privacy.html');
+const projectorHtml   = renderHtml('projector.html');
 const sendHtml = (res, html) => noCacheHtml(res).type('html').send(html);
 
 // Prefix-strip middleware: when the app is served under a proxy subpath that is
@@ -139,8 +139,8 @@ app.use(express.json());
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
-function requireTeacher(req, res, next) {
-  if (req.headers['x-teacher-token'] !== TEACHER_SLUG) {
+function requireHost(req, res, next) {
+  if (req.headers['x-host-token'] !== HOST_SLUG) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   next();
@@ -217,7 +217,9 @@ function touchSession(sessionId) {
   if (s) s.lastActivity = Date.now();
 }
 
-// Normalise an optional lecturer-provided shortlink (config.student_shortlink).
+// Normalise an optional lecturer-provided shortlink (config.host_shortlink,
+// falling back to the older config.student_shortlink key so existing question
+// repos in the wild keep working after the field rename).
 // Display-only: trimmed, with https:// prefixed if no scheme. Returns null if absent.
 function normaliseShortlink(raw) {
   const value = typeof raw === 'string' ? raw.trim() : '';
@@ -246,18 +248,18 @@ app.get('/purify.min.js', (req, res) => {
 // KaTeX fonts (referenced by katex.min.css as ./fonts/...)
 app.use('/fonts', express.static(path.join(__dirname, 'node_modules', 'katex', 'dist', 'fonts')));
 
-// Teacher page — default repo URL injected from DEFAULT_REPO_URL env var
-// (teacher.html lives in the project root, not public/ — see CLAUDE.md)
-const teacherHtml = injectBase(fs.readFileSync(path.join(__dirname, 'teacher.html'), 'utf8')
+// Host page — default repo URL injected from DEFAULT_REPO_URL env var
+// (host.html lives in the project root, not public/ — see CLAUDE.md)
+const hostHtml = injectBase(fs.readFileSync(path.join(__dirname, 'host.html'), 'utf8')
   .replace('__DEFAULT_REPO_URL__', DEFAULT_REPO_URL.replace(/"/g, '&quot;'))
   .replace('__VERSION__', VERSION_HTML));
-app.get(`/${TEACHER_SLUG}`, (req, res) => {
-  sendHtml(res, teacherHtml);
+app.get(`/${HOST_SLUG}`, (req, res) => {
+  sendHtml(res, hostHtml);
 });
 
-// Student join page
+// Participant join page
 app.get('/join/:sessionId', (req, res) => {
-  sendHtml(res, studentHtml);
+  sendHtml(res, participantHtml);
 });
 
 // Projector view — read-only, shows QR + live results, optimised for beamer
@@ -402,7 +404,7 @@ app.get('/privacy', (req, res) => {
 });
 
 // Pull/clone repo and return list of yaml files + config
-app.post('/api/pull', requireTeacher, async (req, res) => {
+app.post('/api/pull', requireHost, async (req, res) => {
   const { repo, ownerToken, force } = req.body;
   if (!repo) return res.status(400).json({ error: 'repo is required' });
 
@@ -477,9 +479,9 @@ app.post('/api/pull', requireTeacher, async (req, res) => {
     // actually live (open or has an active question) and the pull comes from
     // a browser we don't recognise (ownerToken mismatch), warn instead of
     // silently taking it over — two lecturers reusing the same generic repo
-    // would otherwise clobber each other's poll without any signal. A teacher
+    // would otherwise clobber each other's poll without any signal. A host
     // reloading their own tab carries the same ownerToken and passes through.
-    // `force: true` lets the teacher UI confirm the takeover explicitly.
+    // `force: true` lets the host UI confirm the takeover explicitly.
     const isLive = existing && (existing.open || existing.activeQuestion);
     if (existing && isLive && existing.ownerToken && ownerToken !== existing.ownerToken && !force) {
       return res.status(409).json({
@@ -490,7 +492,7 @@ app.post('/api/pull', requireTeacher, async (req, res) => {
 
     // Register or refresh the session entry (no active question yet)
     const sessionToken = crypto.randomBytes(4).toString('hex'); // fresh on every pull
-    const shortlink = normaliseShortlink(config.student_shortlink);
+    const shortlink = normaliseShortlink(config.host_shortlink ?? config.student_shortlink);
     if (!existing) {
       sessions.set(sessionId, {
         sessionId,
@@ -509,12 +511,12 @@ app.post('/api/pull', requireTeacher, async (req, res) => {
       });
       log.info(`Session '${sessionId}' started`);
       log.info(`  repo=${repo}`);
-      // Notify any students already waiting at this URL
+      // Notify any participants already waiting at this URL
       io.to(`session:${sessionId}`).emit('session-created', { title: config.title || null, sessionToken, shortlink });
     } else {
       log.info(`Session '${sessionId}' refreshed`);
       log.info(`  repo=${repo}`);
-      // Same repo pulled again — new token clears prior student submissions
+      // Same repo pulled again — new token clears prior participant submissions
       existing.sessionToken = sessionToken;
       existing.ownerToken = ownerToken || existing.ownerToken;
       existing.questionsDir = questionsDir;
@@ -522,7 +524,7 @@ app.post('/api/pull', requireTeacher, async (req, res) => {
       existing.shortlink = shortlink;
       existing.answersRevealed = false;
       existing.lastActivity = Date.now();
-      // Notify students of the new token so their sessionStorage keys are invalidated
+      // Notify participants of the new token so their sessionStorage keys are invalidated
       io.to(`session:${sessionId}`).emit('session-created', { title: config.title || null, sessionToken, shortlink });
     }
 
@@ -544,7 +546,7 @@ app.post('/api/pull', requireTeacher, async (req, res) => {
 });
 
 // Load questions from a specific file
-app.get('/api/questions', requireTeacher, async (req, res) => {
+app.get('/api/questions', requireHost, async (req, res) => {
   const { file, sessionId } = req.query;
   if (!file) return res.status(400).json({ error: 'file is required' });
   if (!sessionId) return res.status(400).json({ error: 'sessionId is required' });
@@ -572,8 +574,8 @@ app.get('/api/questions', requireTeacher, async (req, res) => {
   }
 });
 
-// Generate QR code for a URL (teacher-only)
-app.get('/api/qr', requireTeacher, async (req, res) => {
+// Generate QR code for a URL (host-only)
+app.get('/api/qr', requireHost, async (req, res) => {
   const { url } = req.query;
   if (!url) return res.status(400).json({ error: 'url is required' });
   try {
@@ -596,6 +598,10 @@ app.get('/api/qr-public', async (req, res) => {
   const joinPattern = /^(?:\/[a-zA-Z0-9_-]+)*\/join\/[a-zA-Z0-9_-]+$/;
   let parsed;
   try { parsed = new URL(url); } catch { return res.status(400).json({ error: 'invalid url' }); }
+  // `req.headers.host`/`parsed.host` here is the HTTP Host header (protocol
+  // concept — scheme+hostname+port), unrelated to the "host" role/HOST_SLUG
+  // introduced elsewhere in this file. Kept as-is to avoid confusing this
+  // well-known Express/HTTP idiom with an app-specific rename.
   if (parsed.host !== req.headers.host || !joinPattern.test(parsed.pathname)) {
     return res.status(403).json({ error: 'only join URLs on this host are allowed' });
   }
@@ -607,8 +613,8 @@ app.get('/api/qr-public', async (req, res) => {
   }
 });
 
-// Current session info (for teacher page reload)
-app.get('/api/session', requireTeacher, (req, res) => {
+// Current session info (for host page reload)
+app.get('/api/session', requireHost, (req, res) => {
   const { sessionId } = req.query;
   const s = sessionId ? sessions.get(sessionId) : null;
   if (!s) return res.json({ session: null });
@@ -631,8 +637,8 @@ function expireSession(sessionId) {
   s.open = false;
   // Scope both emits to this session's room only. A global io.emit here would
   // reach every other concurrent session too — their clients can't tell it
-  // apart from their own expiry and would wrongly reset. The teacher joins its
-  // room at pull time (see teacher.js pullRepo), so a room emit reaches it even
+  // apart from their own expiry and would wrongly reset. The host joins its
+  // room at pull time (see host.js pullRepo), so a room emit reaches it even
   // before the first activation; the sessionId lets clients confirm it's theirs.
   io.to(`session:${sessionId}`).emit('question-closed');
   io.to(`session:${sessionId}`).emit('session-expired', { sessionId });
@@ -646,17 +652,17 @@ function expireSession(sessionId) {
 
 io.on('connection', (socket) => {
 
-  // Student joins a session room
+  // Participant joins a session room
   socket.on('join-session', ({ sessionId }) => {
     socket.join(`session:${sessionId}`);
 
     const s = sessions.get(sessionId);
     if (s && s.activeQuestion) {
-      const { correct, explanation, ...studentQuestion } = s.activeQuestion;
+      const { correct, explanation, ...participantQuestion } = s.activeQuestion;
       const correctIndices = s.answersRevealed ? toCorrectIndices(s.activeQuestion.correct) : [];
       socket.emit('session-state', {
         exists: true,
-        question: studentQuestion,
+        question: participantQuestion,
         votes: s.votes,
         open: s.open,
         total: s.voters.size,
@@ -672,9 +678,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Teacher activates a question — token checked here because socket events have no HTTP headers
+  // Host activates a question — token checked here because socket events have no HTTP headers
   socket.on('activate-question', ({ question, sessionId, token, title }) => {
-    if (token !== TEACHER_SLUG) return;
+    if (token !== HOST_SLUG) return;
 
     const s = sessions.get(sessionId);
     if (!s) return;
@@ -693,14 +699,14 @@ io.on('connection', (socket) => {
     }
     s.activeQuestion = question;
 
-    // Strip teacher-only fields before broadcasting to students
-    const { correct, explanation, ...studentQuestion } = question;
-    io.to(`session:${sessionId}`).emit('question-activated', { question: studentQuestion, sessionId, title: s.title, votes: s.votes, total: s.voters.size, sessionToken: s.sessionToken });
+    // Strip host-only fields before broadcasting to participants
+    const { correct, explanation, ...participantQuestion } = question;
+    io.to(`session:${sessionId}`).emit('question-activated', { question: participantQuestion, sessionId, title: s.title, votes: s.votes, total: s.voters.size, sessionToken: s.sessionToken });
   });
 
-  // Teacher deactivates — voting closes, students see bars without highlights
+  // Host deactivates — voting closes, participants see bars without highlights
   socket.on('deactivate-question', ({ sessionId, token }) => {
-    if (token !== TEACHER_SLUG) return;
+    if (token !== HOST_SLUG) return;
     const s = sessions.get(sessionId);
     if (!s || !s.activeQuestion) return;
     s.open = false;
@@ -709,9 +715,9 @@ io.on('connection', (socket) => {
     io.to(`session:${sessionId}`).emit('question-deactivated', { votes: s.votes, total: s.voters.size });
   });
 
-  // Teacher reveals correct answers — broadcasts highlighted indices
+  // Host reveals correct answers — broadcasts highlighted indices
   socket.on('show-answer', ({ sessionId, token }) => {
-    if (token !== TEACHER_SLUG) return;
+    if (token !== HOST_SLUG) return;
     const s = sessions.get(sessionId);
     if (!s || !s.activeQuestion) return;
     s.open = false;
@@ -721,9 +727,9 @@ io.on('connection', (socket) => {
     io.to(`session:${sessionId}`).emit('answer-revealed', { correctIndices, votes: s.votes, total: s.voters.size });
   });
 
-  // Teacher closes — students sent to waiting screen, question cleared
+  // Host closes — participants sent to waiting screen, question cleared
   socket.on('close-question', ({ sessionId, token }) => {
-    if (token !== TEACHER_SLUG) return;
+    if (token !== HOST_SLUG) return;
     const s = sessions.get(sessionId);
     if (!s) return;
     s.open = false;
@@ -733,7 +739,7 @@ io.on('connection', (socket) => {
     io.to(`session:${sessionId}`).emit('question-closed');
   });
 
-  // Student submits answer(s)
+  // Participant submits answer(s)
   socket.on('submit-answer', ({ sessionId, selected, voterId }) => {
     const s = sessions.get(sessionId);
     if (!s || !s.open || !s.activeQuestion) return;
@@ -744,7 +750,7 @@ io.on('connection', (socket) => {
     if (s.voters.has(voterKey)) return;
     // Voting is anonymous and voterId is client-supplied, so a scripted client
     // can mint unlimited fake voters — each one grows this set and fires a
-    // room-wide vote-update broadcast. Cap it far above any real lecture size
+    // room-wide vote-update broadcast. Cap it far above any real session size
     // to bound memory and broadcast load; legitimate sessions never reach it.
     if (s.voters.size >= 10000) return;
 
@@ -772,5 +778,5 @@ io.on('connection', (socket) => {
 // ─── Start ────────────────────────────────────────────────────────────────────
 server.listen(PORT, () => {
   log.info(`QuiQui running on http://localhost:${PORT}${BASE_PATH}`);
-  log.info(`Teacher page: http://localhost:${PORT}${BASE_PATH}/${TEACHER_SLUG}`);
+  log.info(`Host page: http://localhost:${PORT}${BASE_PATH}/${HOST_SLUG}`);
 });

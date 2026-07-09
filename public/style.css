@@ -326,7 +326,7 @@ select:focus {
   word-break: break-all;
 }
 
-/* Compact stack of label + link rows (projector / student / shortlink) */
+/* Compact stack of label + link rows (projector / participant / shortlink) */
 .join-links__label {
   margin-top: 8px;
   margin-bottom: 4px;
@@ -362,7 +362,7 @@ select:focus {
 .bar-wrap { margin-top: 4px; }
 
 
-/* ─── Student — join screen ────────────────────────────────────── */
+/* ─── Participant — join screen ───────────────────────────────── */
 .join-screen-inner {
   text-align: center;
   padding: 1rem 0;
@@ -373,7 +373,7 @@ select:focus {
   color: var(--color-text-muted);
 }
 
-/* ─── Student — question screen ────────────────────────────────── */
+/* ─── Participant — question screen ───────────────────────────── */
 .type-hint {
   font-size: 12px;
   color: var(--color-text-hint);

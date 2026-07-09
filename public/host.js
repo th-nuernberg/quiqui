@@ -30,18 +30,18 @@ let currentTotal = 0;
 let currentState = 'inactive';
 let runStart = 0;        // Date.now() when the question went active
 let runTimer = null;     // setInterval handle for the live stopwatch
-// The UI for a close is driven synchronously by the teacher action that caused
+// The UI for a close is driven synchronously by the host action that caused
 // it (closeQuestion collapses the card, selectQuestion swaps to the new card).
 // The server's question-closed echo is then just confirmation. This flag marks
 // such a self-initiated close so its echo is a no-op; an echo arriving without
 // it is an unsolicited (server-side) close, which falls back to setState('closed').
 let selfInitiatedClose = false;
 
-// Slug is the last path segment this page was loaded from — used as the teacher
+// Slug is the last path segment this page was loaded from — used as the host
 // token. Using the last (not first) segment keeps this correct if the app is
-// served behind a reverse-proxy path prefix (e.g. /quiqui/teach-xk92p).
+// served behind a reverse-proxy path prefix (e.g. /quiqui/host-xk92p).
 const pathSegments = window.location.pathname.split('/').filter(Boolean);
-const TEACHER_TOKEN = pathSegments[pathSegments.length - 1] || '';
+const HOST_TOKEN = pathSegments[pathSegments.length - 1] || '';
 
 // Random per-browser identity, persisted in localStorage (not a cookie — never
 // sent automatically, only attached to /api/pull). Lets the server tell "you
@@ -110,7 +110,7 @@ async function pullRepo(force = false) {
   try {
     const res = await fetch(`${BASE_PATH}/api/pull`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Teacher-Token': TEACHER_TOKEN },
+      headers: { 'Content-Type': 'application/json', 'X-Host-Token': HOST_TOKEN },
       body: JSON.stringify({ repo, ownerToken: OWNER_TOKEN, force }),
     });
     const data = await res.json();
@@ -138,8 +138,8 @@ async function pullRepo(force = false) {
     currentSessionId = data.sessionId;
     sessionExpired = false;
     // Join the session room now — before any question is activated — so
-    // room-scoped server events (e.g. session-expired) reach this teacher even
-    // on a freshly-pulled session. Without this the teacher only joins on
+    // room-scoped server events (e.g. session-expired) reach this host even
+    // on a freshly-pulled session. Without this the host only joins on
     // activate/reconnect and would miss an expiry of a not-yet-activated session.
     socket.emit('join-session', { sessionId: currentSessionId });
     const joinUrl = `${location.origin}${BASE_PATH}/join/${currentSessionId}`;
@@ -189,7 +189,7 @@ async function loadFile() {
 
   try {
     const res = await fetch(`${BASE_PATH}/api/questions?file=${encodeURIComponent(file)}&sessionId=${encodeURIComponent(currentSessionId)}`, {
-      headers: { 'X-Teacher-Token': TEACHER_TOKEN },
+      headers: { 'X-Host-Token': HOST_TOKEN },
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
@@ -247,14 +247,14 @@ function selectQuestion(index) {
   // easy-to-miss status line is the only clue why.
   if (sessionExpired) { alert('Session has expired. Pull the repo again to start a new session.'); return; }
 
-  // A live poll (active/deactivated/revealed) has students watching it. Switching
-  // away tears it down server-side and sends those students to the waiting screen,
+  // A live poll (active/deactivated/revealed) has participants watching it. Switching
+  // away tears it down server-side and sends those participants to the waiting screen,
   // so confirm before doing it. inactive/closed have nothing live to disturb.
   const pollIsLive = ['active', 'deactivated', 'revealed'].includes(currentState);
   if (pollIsLive && !confirm('Close the current poll and switch to this question?')) return;
   if (pollIsLive && currentSessionId) {
     selfInitiatedClose = true; // the echo is just confirming this teardown; the new card is rendered below
-    socket.emit('close-question', { sessionId: currentSessionId, token: TEACHER_TOKEN });
+    socket.emit('close-question', { sessionId: currentSessionId, token: HOST_TOKEN });
   }
   selectedIndex = index;
   selectedQuestion = questions[index];
@@ -318,11 +318,11 @@ function collapseActive() {
 
 // ─── State machine ────────────────────────────────────────────────────────────
 // States: 'inactive' | 'active' | 'deactivated' | 'revealed' | 'closed'
-// 'inactive'    — teacher preview, students on waiting screen
+// 'inactive'    — host preview, participants on waiting screen
 // 'active'      — voting open
-// 'deactivated' — voting closed, students see bars (no highlights)
-// 'revealed'    — voting closed, students see bars + highlights
-// 'closed'      — students on waiting screen, activeQuestion cleared
+// 'deactivated' — voting closed, participants see bars (no highlights)
+// 'revealed'    — voting closed, participants see bars + highlights
+// 'closed'      — participants on waiting screen, activeQuestion cleared
 
 function setState(state) {
   currentState = state;
@@ -408,12 +408,12 @@ function updateNextBtn(strong = false) {
 function activateQuestion() {
   if (!selectedQuestion || sessionExpired) return;
   if (currentState === 'active') {
-    socket.emit('deactivate-question', { sessionId: currentSessionId, token: TEACHER_TOKEN });
+    socket.emit('deactivate-question', { sessionId: currentSessionId, token: HOST_TOKEN });
   } else {
     socket.emit('activate-question', {
       question: selectedQuestion,
       sessionId: currentSessionId,
-      token: TEACHER_TOKEN,
+      token: HOST_TOKEN,
       title: currentTitle,
     });
     revealedCorrectIndices = [];
@@ -426,7 +426,7 @@ window.activateQuestion = activateQuestion;
 // ─── Reveal answer ────────────────────────────────────────────────────────────
 function revealAnswer() {
   if (!currentSessionId || !selectedQuestion) return;
-  socket.emit('show-answer', { sessionId: currentSessionId, token: TEACHER_TOKEN });
+  socket.emit('show-answer', { sessionId: currentSessionId, token: HOST_TOKEN });
 }
 window.revealAnswer = revealAnswer;
 
@@ -434,11 +434,11 @@ window.revealAnswer = revealAnswer;
 function closeQuestion() {
   // Close always dismisses the inline card back to a snippet. If a poll is live
   // (active/deactivated/revealed) it also tears it down server-side, sending
-  // students to the waiting screen. inactive/closed have no live poll to clear.
+  // participants to the waiting screen. inactive/closed have no live poll to clear.
   const pollIsLive = ['active', 'deactivated', 'revealed'].includes(currentState);
   if (pollIsLive && currentSessionId) {
     selfInitiatedClose = true; // the echo is just confirming this teardown; the card is collapsed below
-    socket.emit('close-question', { sessionId: currentSessionId, token: TEACHER_TOKEN });
+    socket.emit('close-question', { sessionId: currentSessionId, token: HOST_TOKEN });
   }
   collapseActive();
 }
@@ -450,7 +450,7 @@ function nextQuestion() {
 window.nextQuestion = nextQuestion;
 
 // ─── Optional shortlink ───────────────────────────────────────────────────────
-// Lecturer-provided link from config.yaml (student_shortlink). Display only:
+// Lecturer-provided link from config.yaml (host_shortlink). Display only:
 // QuiQui shows it but never resolves or checks where it points. The server has
 // already normalised it (trim + scheme prefix), so it is null or ready to use.
 function setShortlink(shortlink) {
@@ -471,7 +471,7 @@ function setShortlink(shortlink) {
 async function fetchQR(url) {
   try {
     const res = await fetch(`${BASE_PATH}/api/qr?url=${encodeURIComponent(url)}`, {
-      headers: { 'X-Teacher-Token': TEACHER_TOKEN },
+      headers: { 'X-Host-Token': HOST_TOKEN },
     });
     const data = await res.json();
     qrImg.src = data.dataUrl;
@@ -525,7 +525,7 @@ socket.on('answer-revealed', ({ correctIndices, votes, total }) => {
 });
 
 socket.on('question-closed', () => {
-  // Closes initiated by the teacher (✕ Close, or switching questions) already
+  // Closes initiated by the host (✕ Close, or switching questions) already
   // updated the UI synchronously — this echo just confirms the server teardown,
   // so it is a no-op. An echo arriving unsolicited is a server-side close; fall
   // back to the closed state so the card reflects that the poll is gone.

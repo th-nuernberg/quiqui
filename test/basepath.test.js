@@ -5,7 +5,7 @@
 //
 //   • every route answers under the prefix (/quiqui/...) and 404s at the root
 //   • served HTML carries <base href="/quiqui/"> and window.__BASE_PATH__
-//   • static assets and the templated teacher page resolve under the prefix
+//   • static assets and the templated host page resolve under the prefix
 //   • socket.io lives at /quiqui/socket.io and a join round-trips
 //   • /api/qr-public accepts a prefixed /quiqui/join/... URL (host + path check)
 //
@@ -33,8 +33,8 @@ async function run() {
     const rootIndex = await fetch(`${BASE}/`);
     ok(rootIndex.status === 404, 'root "/" 404s (prefix not stripped by the app)');
 
-    const rootTeacher = await fetch(`${BASE}/${SLUG}`);
-    ok(rootTeacher.status === 404, 'teacher page at root (no prefix) 404s');
+    const rootHost = await fetch(`${BASE}/${SLUG}`);
+    ok(rootHost.status === 404, 'host page at root (no prefix) 404s');
 
     const index = await fetch(`${BASE}${PREFIX}/`);
     ok(index.status === 200, 'index served at /quiqui/');
@@ -42,11 +42,11 @@ async function run() {
     const bare = await fetch(`${BASE}${PREFIX}`);
     ok(bare.status === 200, 'bare prefix /quiqui (no trailing slash) serves index');
 
-    const teacher = await fetch(`${BASE}${PREFIX}/${SLUG}`);
-    const teacherBody = await teacher.text();
-    ok(teacher.status === 200, 'teacher page served at /quiqui/<slug>');
-    ok(teacherBody.includes('<base href="/quiqui/"'), 'teacher HTML has <base href="/quiqui/">');
-    ok(teacherBody.includes('window.__BASE_PATH__ = "/quiqui"'), 'teacher HTML sets window.__BASE_PATH__');
+    const host = await fetch(`${BASE}${PREFIX}/${SLUG}`);
+    const hostBody = await host.text();
+    ok(host.status === 200, 'host page served at /quiqui/<slug>');
+    ok(hostBody.includes('<base href="/quiqui/"'), 'host HTML has <base href="/quiqui/">');
+    ok(hostBody.includes('window.__BASE_PATH__ = "/quiqui"'), 'host HTML sets window.__BASE_PATH__');
 
     const css = await fetch(`${BASE}${PREFIX}/style.css`);
     ok(css.status === 200, 'static asset served at /quiqui/style.css');
@@ -98,7 +98,7 @@ async function run() {
 // ── Harness: boot the server under /quiqui, wait for it, run, tear down ───────
 (async () => {
   const server = spawn('node', [path.join(__dirname, '..', 'server.js')], {
-    env: { ...process.env, PORT: String(PORT), TEACHER_SLUG: SLUG, BASE_PATH: PREFIX, LOG_LEVEL: 'ERROR', GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: 'true', GIT_PAGER: 'cat' },
+    env: { ...process.env, PORT: String(PORT), HOST_SLUG: SLUG, BASE_PATH: PREFIX, LOG_LEVEL: 'ERROR', GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: 'true', GIT_PAGER: 'cat' },
     stdio: ['ignore', 'ignore', 'inherit'],
   });
 
