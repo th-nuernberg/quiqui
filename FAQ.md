@@ -11,7 +11,7 @@
 Bookmark your full teacher URL — the one that already contains your question repo, e.g.:
 
 ```
-https://quiqui-x9um.onrender.com/<teacher-slug>?repo=https://github.com/you/quiqui-questions
+https://kiz1.in.ohmportal.de/quiqui/<teacher-slug>?repo=https://github.com/you/quiqui-questions
 ```
 
 Opening it pulls your questions and shows the QR code automatically — no further setup. Save it as a browser bookmark or drop it on your laptop or phone home screen, and you're one click from a running session at the start of every lecture.

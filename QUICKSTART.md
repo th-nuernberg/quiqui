@@ -2,7 +2,7 @@
 
 # Quickstart for Lecturers
 
-> Part of the [QuiQui](https://github.com/th-nuernberg/quiqui) open source project. Hosted instance: [quiqui-x9um.onrender.com](https://quiqui-x9um.onrender.com) (may take ~30s to wake up on first visit).
+> Part of the [QuiQui](https://github.com/th-nuernberg/quiqui) open source project. Hosted instance: [kiz1.in.ohmportal.de/quiqui](https://kiz1.in.ohmportal.de/quiqui).
 >
 > Got a quick question? See the **[FAQ](FAQ.md)**.
 
@@ -22,11 +22,11 @@ QuiQui lets you pose a question to your class and see live answers on screen —
 1. **Set up your question repo** on GitHub with a [`config.yaml`](https://github.com/th-nuernberg/quiqui-questions/blob/main/config.yaml) and one `.yaml` file per lecture topic — see [Setting up `config.yaml`](#setting-up-configyaml) below
 2. **Bookmark your teacher URL:**
    ```
-   https://quiqui-x9um.onrender.com/<teacher-slug>?repo=https://github.com/you/quiqui-questions
+   https://kiz1.in.ohmportal.de/quiqui/<teacher-slug>?repo=https://github.com/you/quiqui-questions
    ```
    You have two options here:
-   - **Use a hosted instance** (e.g. [quiqui-x9um.onrender.com](https://quiqui-x9um.onrender.com)) — contact the [hosted service operator](https://quiqui-x9um.onrender.com/impressum#en) to receive your teacher slug, which goes in place of `<teacher-slug>` above.
-   - **Deploy your own instance** — QuiQui is open source ([th-nuernberg/quiqui](https://github.com/th-nuernberg/quiqui)); deploy it yourself (e.g. on Render) and set your own `TEACHER_SLUG`. You then control your own teacher URL.
+   - **Use the hosted instance** ([kiz1.in.ohmportal.de/quiqui](https://kiz1.in.ohmportal.de/quiqui)) — contact the [hosted service operator](https://kiz1.in.ohmportal.de/quiqui/impressum#en) to receive your teacher slug, which goes in place of `<teacher-slug>` above.
+   - **Deploy your own instance** — QuiQui is open source ([th-nuernberg/quiqui](https://github.com/th-nuernberg/quiqui)); deploy it yourself and set your own `TEACHER_SLUG`. You then control your own teacher URL.
 3. **Put the student QR code or URL in your slides** — it never changes as long as `session_url` in `config.yaml` stays the same. The `session_url` must be **globally unique** on the server — see [Choosing a unique `session_url`](#choosing-a-unique-session_url) below
 4. **Optionally bookmark the projector URL** (`/view/<session_url>`) to open in your browser during the lecture — it shows the live question and results on your beamer alongside the QR code
 

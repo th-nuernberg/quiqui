@@ -9,7 +9,7 @@ See [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiqui-quest
 
 You activate a question, students scan a QR code and answer on their phones, and the whole room watches the results fill in on a live bar chart. Reveal the correct answer whenever you like — it lights up green for everyone at once.
 
-**→ [Try the live demo](https://quiqui-x9um.onrender.com)** — hosted instance (may take ~30s to wake on first visit)  
+**→ [Try the hosted instance](https://kiz1.in.ohmportal.de/quiqui)** — no setup required  
 **→ [Quickstart for lecturers](QUICKSTART.md)** — your own quiz running in 5 minutes  
 **→ [FAQ](FAQ.md)** — common questions answered
 
@@ -38,8 +38,11 @@ A dedicated **projector view** shows the QR code and live results on the beamer,
 **Yours to run, free and private**
 No database, no tracking, no scoring leaderboards. Session state lives in memory and vanishes when the quiz ends. **Self-host it anywhere Node.js runs** — there's no build step. One instance happily serves many lecturers at once.
 
-**Use our hosted service**
-There is always an instance running on [kiz1.in.ohmportal.de/quiqui](http://kiz1.in.ohmportal.de/quiqui). To get access as a lecturer, just ask for the teacher URL — [reach out to us](http://kiz1.in.ohmportal.de/quiqui/impressum#en) at the address on our Impressum.
+---
+
+## Hosted service
+
+There is always an instance running at [kiz1.in.ohmportal.de/quiqui](https://kiz1.in.ohmportal.de/quiqui) — no setup required, and free to use. To get access as a lecturer, just ask for the teacher URL — [reach out to us](https://kiz1.in.ohmportal.de/quiqui/impressum#en) at the address on our Impressum.
 
 ---
 
@@ -165,7 +168,7 @@ In both cases the proxy must pass through the original `Host` header (and the us
 
 ## Deployment
 
-A hosted demo instance runs at [quiqui-x9um.onrender.com](https://quiqui-x9um.onrender.com) (may take ~30s to wake on first visit). To run your own, deploy the Docker image or the Node server anywhere Node.js runs — QuiQui keeps no persistent state, so no database or volumes are needed.
+See [Hosted service](#hosted-service) above to use our instance instead of running your own. To run your own, deploy the Docker image or the Node server anywhere Node.js runs — QuiQui keeps no persistent state, so no database or volumes are needed.
 
 ### Releases
 
