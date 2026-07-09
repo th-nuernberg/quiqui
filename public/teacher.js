@@ -43,6 +43,18 @@ let selfInitiatedClose = false;
 const pathSegments = window.location.pathname.split('/').filter(Boolean);
 const TEACHER_TOKEN = pathSegments[pathSegments.length - 1] || '';
 
+// Random per-browser identity, persisted in localStorage (not a cookie — never
+// sent automatically, only attached to /api/pull). Lets the server tell "you
+// reloading your own tab" apart from "someone else pulling the same repo" so it
+// can warn before one lecturer's live poll silently clobbers another's, e.g. two
+// people both trying the generic question repo on a shared hosted instance.
+const OWNER_TOKEN_KEY = 'quiqui-owner-token';
+let OWNER_TOKEN = localStorage.getItem(OWNER_TOKEN_KEY);
+if (!OWNER_TOKEN) {
+  OWNER_TOKEN = crypto.randomUUID();
+  localStorage.setItem(OWNER_TOKEN_KEY, OWNER_TOKEN);
+}
+
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const repoInput        = document.getElementById('repo-url');
 const btnPull          = document.getElementById('btn-pull');
@@ -71,7 +83,7 @@ const connectionIndicator = document.getElementById('connection-indicator');
   const repo = params.get('repo');
   if (repo) repoInput.value = repo;
 
-  btnPull.addEventListener('click', pullRepo);
+  btnPull.addEventListener('click', () => pullRepo());
   repoInput.addEventListener('keydown', e => { if (e.key === 'Enter') pullRepo(); });
   fileSelect.addEventListener('change', loadFile);
 
@@ -88,7 +100,7 @@ function setStatus(msg, isError = false) {
 }
 
 // ─── Repo pull ────────────────────────────────────────────────────────────────
-async function pullRepo() {
+async function pullRepo(force = false) {
   const repo = repoInput.value.trim();
   if (!repo) { setStatus('Enter a repo URL first.', true); return; }
 
@@ -99,10 +111,19 @@ async function pullRepo() {
     const res = await fetch(`${BASE_PATH}/api/pull`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Teacher-Token': TEACHER_TOKEN },
-      body: JSON.stringify({ repo }),
+      body: JSON.stringify({ repo, ownerToken: OWNER_TOKEN, force }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error);
+    if (!res.ok) {
+      if (data.code === 'SESSION_LIKELY_TAKEN') {
+        setStatus('Session may be in use elsewhere.', true);
+        if (confirm(`${data.error}\n\nEnter anyway? (Only do this if you're sure the other session isn't a colleague's live poll.)`)) {
+          return pullRepo(true);
+        }
+        return;
+      }
+      throw new Error(data.error);
+    }
 
     // Populate file dropdown
     fileSelect.innerHTML = '<option value="">— select a lecture file —</option>';

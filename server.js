@@ -403,7 +403,7 @@ app.get('/privacy', (req, res) => {
 
 // Pull/clone repo and return list of yaml files + config
 app.post('/api/pull', requireTeacher, async (req, res) => {
-  const { repo } = req.body;
+  const { repo, ownerToken, force } = req.body;
   if (!repo) return res.status(400).json({ error: 'repo is required' });
 
   // Only allow public HTTPS GitHub repos
@@ -473,6 +473,21 @@ app.post('/api/pull', requireTeacher, async (req, res) => {
       });
     }
 
+    // Same repo, possibly a different lecturer: if the existing session is
+    // actually live (open or has an active question) and the pull comes from
+    // a browser we don't recognise (ownerToken mismatch), warn instead of
+    // silently taking it over — two lecturers reusing the same generic repo
+    // would otherwise clobber each other's poll without any signal. A teacher
+    // reloading their own tab carries the same ownerToken and passes through.
+    // `force: true` lets the teacher UI confirm the takeover explicitly.
+    const isLive = existing && (existing.open || existing.activeQuestion);
+    if (existing && isLive && existing.ownerToken && ownerToken !== existing.ownerToken && !force) {
+      return res.status(409).json({
+        error: `A session at "${sessionId}" already looks active, possibly started from another device. Confirm to take it over.`,
+        code: 'SESSION_LIKELY_TAKEN',
+      });
+    }
+
     // Register or refresh the session entry (no active question yet)
     const sessionToken = crypto.randomBytes(4).toString('hex'); // fresh on every pull
     const shortlink = normaliseShortlink(config.student_shortlink);
@@ -480,6 +495,7 @@ app.post('/api/pull', requireTeacher, async (req, res) => {
       sessions.set(sessionId, {
         sessionId,
         sessionToken,
+        ownerToken: ownerToken || null,
         repoUrl: repo,
         questionsDir,
         activeQuestion: null,
@@ -500,6 +516,7 @@ app.post('/api/pull', requireTeacher, async (req, res) => {
       log.info(`  repo=${repo}`);
       // Same repo pulled again — new token clears prior student submissions
       existing.sessionToken = sessionToken;
+      existing.ownerToken = ownerToken || existing.ownerToken;
       existing.questionsDir = questionsDir;
       existing.title = config.title || null;
       existing.shortlink = shortlink;

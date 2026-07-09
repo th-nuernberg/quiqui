@@ -32,6 +32,12 @@ Put the figure on a slide and show it the usual way, then use QuiQui just for th
 
 ---
 
+### Can I just use the example question repo, or do I need my own?
+
+You can use [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiqui-questions) directly to try QuiQui out, but it's shared by everyone doing the same thing — if someone else runs a live poll from it at the same time, you'll land in the same session and see each other's votes. QuiQui warns you before this happens ("session may be in use elsewhere") so you don't clobber a colleague's poll by accident, but the real fix is forking your own copy — it's a GitHub click, no coding involved. See [Creating your own question repo](QUICKSTART.md#creating-your-own-question-repo) in the Quickstart.
+
+---
+
 ### Can I build graded tests with multiple questions that students complete on their own?
 
 No. QuiQui is a live, teacher-paced response tool with no login, and it deliberately stores no per-student results — votes are anonymous and vanish when the session ends. If you need self-paced tests with grading and a gradebook, use Moodle or a similar platform instead.

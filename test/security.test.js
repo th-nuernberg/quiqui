@@ -169,6 +169,40 @@ async function run() {
     }
   }
 
+  // ── #6: owner-token warns before a same-repo pull clobbers a live session ──
+  console.log('#6 owner-token collision warning');
+  {
+    const q = { question: 'O', type: 'single', answers: ['a', 'b'], correct: 'A' };
+    const sid = await pullDemo(); // no ownerToken → session has ownerToken: null
+    if (!sid) {
+      skip('owner-token collision warning', 'GitHub unreachable');
+    } else {
+      // Re-pull with an owner token — first pull had none, so this is accepted
+      // and becomes the recorded owner (existing.ownerToken is falsy, so the
+      // mismatch check doesn't fire yet).
+      const first = await post('/api/pull', { repo: REPO, ownerToken: 'owner-A' });
+      ok(first.status === 200, 'first pull with an owner token is accepted (no prior owner recorded)');
+
+      const t = await activate(sid, q); // makes the session "live" (activeQuestion set)
+
+      const blocked = await post('/api/pull', { repo: REPO, ownerToken: 'owner-B' });
+      ok(blocked.status === 409 && blocked.json.code === 'SESSION_LIKELY_TAKEN',
+         'same repo, live session, different ownerToken → 409 SESSION_LIKELY_TAKEN');
+
+      const sameOwner = await post('/api/pull', { repo: REPO, ownerToken: 'owner-A' });
+      ok(sameOwner.status === 200, 'same ownerToken as recorded owner → refreshes silently');
+
+      const forced = await post('/api/pull', { repo: REPO, ownerToken: 'owner-B', force: true });
+      ok(forced.status === 200, 'force: true bypasses the warning and takes over');
+
+      const nowOwnerB = await post('/api/pull', { repo: REPO, ownerToken: 'owner-A' });
+      ok(nowOwnerB.status === 409 && nowOwnerB.json.code === 'SESSION_LIKELY_TAKEN',
+         'after a forced takeover, the previous owner is now the one warned');
+
+      t.close();
+    }
+  }
+
   console.log(`\n${passed} passed, ${failed} failed, ${skipped} skipped`);
   return failed === 0;
 }

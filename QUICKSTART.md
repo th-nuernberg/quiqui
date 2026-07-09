@@ -19,7 +19,7 @@ QuiQui lets you pose a question to your class and see live answers on screen —
 
 ## Before the lecture (once)
 
-1. **Set up your question repo** on GitHub with a [`config.yaml`](https://github.com/th-nuernberg/quiqui-questions/blob/main/config.yaml) and one `.yaml` file per lecture topic — see [Setting up `config.yaml`](#setting-up-configyaml) below
+1. **Set up your own question repo** on GitHub — see [Creating your own question repo](#creating-your-own-question-repo) below if you've never used GitHub before; it takes about two minutes and needs no coding
 2. **Bookmark your teacher URL:**
    ```
    https://kiz1.in.ohmportal.de/quiqui/<teacher-slug>?repo=https://github.com/you/quiqui-questions
@@ -29,6 +29,25 @@ QuiQui lets you pose a question to your class and see live answers on screen —
    - **Deploy your own instance** — QuiQui is open source ([th-nuernberg/quiqui](https://github.com/th-nuernberg/quiqui)); deploy it yourself and set your own `TEACHER_SLUG`. You then control your own teacher URL.
 3. **Put the student QR code or URL in your slides** — it never changes as long as `session_url` in `config.yaml` stays the same. The `session_url` must be **globally unique** on the server — see [Choosing a unique `session_url`](#choosing-a-unique-session_url) below
 4. **Optionally bookmark the projector URL** (`/view/<session_url>`) to open in your browser during the lecture — it shows the live question and results on your beamer alongside the QR code
+
+---
+
+## Creating your own question repo
+
+You don't need to know Git or write any code — GitHub's website does everything below with clicks.
+
+Why you need your own repo at all: your questions and your `session_url` (the address your students join) live in it. The example [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiqui-questions) repo works to try QuiQui out, but it's **shared by everyone trying the demo** — if two people run a live poll from it at the same time, they end up in the same session and see each other's votes. QuiQui will warn you if that's about to happen (see [During the lecture](#during-the-lecture)), but the fix is your own repo, not working around the warning.
+
+1. **Create a free GitHub account** at [github.com/join](https://github.com/join) if you don't have one already — just an email address, no payment details
+2. **Open [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiqui-questions)** and click **Fork** (top-right of the page) — this makes your own copy of the example repo, in your own account, in one click
+3. **Make sure it stays public** — GitHub forks are public by default, which is required (QuiQui only reads public repos); don't change the visibility
+4. **Edit `config.yaml`** directly on GitHub: open the file, click the pencil ✎ icon, change `session_url` to something that's unmistakably yours (e.g. `yourname-databases101`, not just `databases`), then click **Commit changes**. See [Choosing a unique `session_url`](#choosing-a-unique-session_url) below for why this matters
+5. **Edit or add a `.yaml` question file** the same way — click a file like `lecture1-python-basics.yaml`, click ✎, change the questions, **Commit changes**. To add a new file for a new topic, use **Add file → Create new file** in the repo
+6. **Copy your repo's URL** from the address bar, e.g. `https://github.com/yourname/quiqui-questions` — that's the `repo=` value in your teacher URL (see [Bookmark your teacher URL](#before-the-lecture-once) above)
+
+That's it — no local installs, no command line. Everything from here on (adding questions, changing `config.yaml`, fixing typos) happens the same way: edit the file on GitHub, commit, then click **Pull latest** in the teacher view.
+
+> **Prefer AI-assisted question writing?** See [Designing your questions](#designing-your-questions) below — there's a ready-made prompt for generating a whole question file with ChatGPT or Claude, which you then paste into a new file on GitHub using the same ✎ steps above.
 
 ---
 
@@ -84,9 +103,11 @@ To change questions later, edit the `.yaml` files in GitHub and click **Pull lat
 
 > **Happy path:** Activate → (students vote) → Reveal → Close → Next question →
 
-> **Tip:** Open the teacher page a minute before class — the app may take ~30 seconds to wake up on the free Render plan.
+> **Tip:** Open the teacher page a minute before class to make sure your repo pulls cleanly and the QR code is ready before students arrive.
 
 > **Session lifetime:** A session expires after **90 minutes of inactivity**. After expiry, click **Pull latest** to start a fresh session — the student URL stays the same.
+
+> **"Session may be in use elsewhere" warning:** If you pull a repo whose `session_url` already has a live poll running from a different browser, QuiQui warns you before taking over — this is the safety net for two people accidentally sharing one repo (e.g. the shared demo repo). If it's your own poll from another tab or device, confirm to continue; if you don't recognise it, cancel and check your `session_url` is actually unique to you.
 
 ---
 
