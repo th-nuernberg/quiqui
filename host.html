@@ -25,8 +25,8 @@
         <div class="section-label">Select public GitHub repo with question files</div>
         <div class="file-row">
           <input type="text" id="repo-url" value="__DEFAULT_REPO_URL__" />
-          <button class="btn-primary" id="btn-pull">
-            <span class="icon">↻</span> Pull latest
+          <button class="btn-primary" id="btn-pull" title="Download question files from repository, refresh at anytime.">
+            <span class="icon">↻</span> Load questions
           </button>
         </div>
         <div class="file-row" style="margin-top: 10px;">
@@ -81,10 +81,10 @@
 
         <!-- Controls -->
         <div class="btn-row">
-          <button class="btn-primary" id="btn-activate" onclick="activateQuestion()">▶ Activate</button>
-          <button class="btn-secondary" id="btn-show-answer" onclick="revealAnswer()">✓ Reveal</button>
-          <button class="btn-secondary" id="btn-close" onclick="closeQuestion()">✕ Close</button>
-          <button class="btn-light" id="btn-next" style="display:none;" onclick="nextQuestion()">Next question →</button>
+          <button class="btn-primary" id="btn-activate" onclick="activateQuestion()" title="Open question for voting.">▶ Activate</button>
+          <button class="btn-secondary" id="btn-show-answer" onclick="revealAnswer()" title="Stop voting and reveal correct answer(s).">✓ Reveal</button>
+          <button class="btn-secondary" id="btn-close" onclick="closeQuestion()" title="Dismiss question, send participants to waiting screen.">✕ Close</button>
+          <button class="btn-light" id="btn-next" style="display:none;" onclick="nextQuestion()" title="Go to next question in the list.">Next question →</button>
         </div>
       </section>
 

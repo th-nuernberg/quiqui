@@ -350,8 +350,11 @@ function setState(state) {
     statusBadge.className = 'badge-live' + badgeMod;
   }
 
-  // Activate button toggles label based on state
+  // Activate button toggles label and tooltip based on state
   btnActivate.textContent = state === 'active' ? '⏹ Deactivate' : '▶ Activate';
+  btnActivate.title = state === 'active'
+    ? 'Stop voting, but do not reveal correct answer(s), re-activation possible.'
+    : 'Open question for voting.';
 
   // Button styles and disabled state per state:
   // strong blue = btn-primary, light blue = btn-light, white = btn-secondary (disabled)
