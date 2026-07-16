@@ -125,7 +125,7 @@ async function pullRepo(force = false) {
       throw new Error(data.error);
     }
 
-    // Populate file dropdown
+    // Populate file dropdown — disabled until a repo is pulled for the first time
     fileSelect.innerHTML = '<option value="">— select a question file —</option>';
     data.files.forEach(f => {
       const opt = document.createElement('option');
@@ -133,6 +133,7 @@ async function pullRepo(force = false) {
       opt.textContent = f;
       fileSelect.appendChild(opt);
     });
+    fileSelect.disabled = false;
 
     // sessionId is always returned by the server (from config.session_url or random fallback)
     currentSessionId = data.sessionId;
@@ -167,7 +168,12 @@ async function pullRepo(force = false) {
     url.searchParams.set('repo', repo);
     history.replaceState(null, '', url);
 
-    setStatus(`Pulled ${data.files.length} file(s).`);
+    // Repo URL is validated server-side as a public GitHub https:// URL, but
+    // still escape it before injecting into the link to avoid any HTML/attr breakout.
+    const repoHref = escapeHtml(repo);
+    pullStatus.classList.remove('meta-line--error');
+    pullStatus.innerHTML = `Pulled ${data.files.length} file(s) from `
+      + `<a href="${repoHref}" target="_blank" rel="noopener">${repoHref}</a>.`;
     btnPull.className = 'btn-light';
     sectionQuestions.style.display = 'none';
     parkActiveCard();
@@ -597,3 +603,13 @@ function previewQuestion(s) {
 // DOMPurify's default profile permits HTML + SVG + MathML, preserving KaTeX output.
 function mdHtml(s) { return DOMPurify.sanitize(marked.parse(s)); }
 function mdInline(s) { return DOMPurify.sanitize(marked.parseInline(s)); }
+
+// Escape a plain string for safe insertion into HTML text/attribute contexts.
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
