@@ -8,6 +8,8 @@
 
 QuiQui lets you pose a question to your class and see live answers on screen — no app, no login, no setup for participants.
 
+Everything that defines your session — the questions, the join URL, the correct answers — is **injected from your GitHub repo**, not stored in the tool. QuiQui keeps nothing itself: you point it at your repo, pull, and your session appears. That's why the first step below is setting up your own repo.
+
 ---
 
 ## What you need

@@ -1,6 +1,6 @@
 <img src="public/quiqui-logo.png" alt="QuiQui" width="240" />
 
-# Live quiz & audience response tool for lectures, meetings, and talks — no accounts, no database, just yaml questions
+# Live quiz & audience response tool for lectures, meetings, and talks — no accounts, no database, everything injected from a YAML question repo
 
 **QuiQui — short for *quick quiz* — is a free, open-source live quiz tool that turns any room into a live poll in seconds.** 
 
@@ -19,6 +19,11 @@ You activate a question, participants scan a QR code and answer on their phones,
 
 Commercial quiz and poll tools want an account, a subscription, your participants' data, and a lot of tedious clicking to create your questions. 
 QuiQui makes **live in-class polling as simple as possible.**
+
+**Everything is injected from your Git repo — the tool stores nothing**
+Your questions *and* everything that defines a session — the join URL, the title, the correct answers, the explanations — are **injected from your GitHub repo** each time you pull. QuiQui itself keeps no database, no local files, no accounts: the repo is the single source of truth, and pointing QuiQui at it is all it takes for a session to appear. Nothing about your content lives inside the tool.
+
+This is **dependency injection / inversion of control** applied to quiz content: QuiQui is a stateless renderer that has its concrete session — questions and configuration — supplied from an external Git repo at pull time, rather than owning or hard-coding any of it.
 
 **Your questions are plain text in Git**
 Write questions as simple YAML in a public GitHub repo. Version them, diff them, copy them between courses, edit them in your favourite editor. No clunky web form, no vendor lock-in — pull the latest into a session anytime.
@@ -48,6 +53,7 @@ There is always an instance running at [kiz1.in.ohmportal.de/quiqui](https://kiz
 
 ## Full feature list
 
+- **Everything injected from the repo** — questions *and* all session-defining data (join URL, title, correct answers, explanations) come from your GitHub repo on every pull; the tool holds no persistent state of its own — no database, no local files, no accounts. The repo is the single source of truth
 - **Host-paced** — the host controls which question is active; participants cannot browse ahead
 - **No participant login** — participants join by scanning a QR code or visiting a URL
 - **Live results** — bar chart updates in real time as participants submit
@@ -57,10 +63,10 @@ There is always an instance running at [kiz1.in.ohmportal.de/quiqui](https://kiz
 - **Run timer** — while a question is active, the host view shows a live stopwatch counting up, so the host can see how long voting has been open
 - **Single and multiple choice** — per-question type configured in YAML
 - **Markdown and LaTeX** — question text and answers support code blocks, inline code, and math expressions
-- **Questions in Git** — question files live in a public GitHub repo; no admin interface needed
+- **Questions in Git** — question files are plain YAML in a public GitHub repo; versionable, diffable, reusable, no admin interface needed
 - **Optional shortlink** — a host-provided `host_shortlink` in `config.yaml` is shown in the host view and used in place of the long join URL on the projector, so participants can type a memorable address
 - **Multiple concurrent sessions** — each repo's `session_url` defines an independent session; the URL must be unique per host (e.g. `tum-python101`), as two sessions with the same `session_url` from different repos cannot coexist
-- **No database** — all session state is in memory and intentionally ephemeral
+- **No database** — the only state is the live session, held in memory and intentionally ephemeral; it vanishes on restart or when the session ends
 - **No build step** — vanilla HTML/CSS/JS frontend, deploy anywhere Node.js runs
 
 ---
