@@ -59,6 +59,7 @@ if (!OWNER_TOKEN) {
 const repoInput        = document.getElementById('repo-url');
 const btnPull          = document.getElementById('btn-pull');
 const fileSelect       = document.getElementById('file-select');
+const fileRow          = document.getElementById('file-row');
 const pullStatus       = document.getElementById('pull-status');
 const sectionQuestions = document.getElementById('section-questions');
 const questionList     = document.getElementById('question-list');
@@ -125,7 +126,7 @@ async function pullRepo(force = false) {
       throw new Error(data.error);
     }
 
-    // Populate file dropdown — disabled until a repo is pulled for the first time
+    // Populate file dropdown — hidden until a repo is pulled for the first time
     fileSelect.innerHTML = '<option value="">— select a question file —</option>';
     data.files.forEach(f => {
       const opt = document.createElement('option');
@@ -133,7 +134,7 @@ async function pullRepo(force = false) {
       opt.textContent = f;
       fileSelect.appendChild(opt);
     });
-    fileSelect.disabled = false;
+    fileRow.style.display = '';
 
     // sessionId is always returned by the server (from config.session_url or random fallback)
     currentSessionId = data.sessionId;

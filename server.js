@@ -777,6 +777,7 @@ io.on('connection', (socket) => {
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 server.listen(PORT, () => {
-  log.info(`QuiQui running on http://localhost:${PORT}${BASE_PATH}`);
+  log.info(`QuiQui v${APP_VERSION}`);
+  log.info(`running on http://localhost:${PORT}${BASE_PATH}`);
   log.info(`Host page: http://localhost:${PORT}${BASE_PATH}/${HOST_SLUG}`);
 });
