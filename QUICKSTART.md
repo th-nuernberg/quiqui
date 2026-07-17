@@ -41,8 +41,8 @@ You don't need to know Git or write any code — GitHub's website does everythin
 Why you need your own repo at all: your questions and your `session_url` (the address your participants join) live in it. The example [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiqui-questions) repo works to try QuiQui out, but it's **shared by everyone trying the demo** — if two people run a live poll from it at the same time, they end up in the same session and see each other's votes. QuiQui will warn you if that's about to happen (see [During the lecture](#during-the-lecture)), but the fix is your own repo, not working around the warning.
 
 1. **Create a free GitHub account** at [github.com/join](https://github.com/join) if you don't have one already — just an email address, no payment details
-2. **Open [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiqui-questions)** and click **Fork** (top-right of the page) — this makes your own copy of the example repo, in your own account, in one click
-3. **Make sure it stays public** — GitHub forks are public by default, which is required (QuiQui only reads public repos); don't change the visibility
+2. **[Create your own copy →](https://github.com/new?template_owner=th-nuernberg&template_name=quiqui-questions&name=quiqui-questions&description=My+QuiQui+questions&visibility=public)** — this pre-fills GitHub's "create repository" page from the example repo as a template; just confirm and click **Create repository**. (Same result as forking, but you get a clean repo with no shared history, under whatever name you pick.)
+3. **Make sure it stays public** — the visibility is pre-set to Public in the link above, which is required (QuiQui only reads public repos); don't change it
 4. **Edit `config.yaml`** directly on GitHub: open the file, click the pencil ✎ icon, change `session_url` to something that's unmistakably yours (e.g. `yourname-databases101`, not just `databases`), then click **Commit changes**. See [Choosing a unique `session_url`](#choosing-a-unique-session_url) below for why this matters
 5. **Edit or add a `.yaml` question file** the same way — click a file like `lecture1-python-basics.yaml`, click ✎, change the questions, **Commit changes**. To add a new file for a new topic, use **Add file → Create new file** in the repo
 6. **Copy your repo's URL** from the address bar, e.g. `https://github.com/yourname/quiqui-questions` — that's the `repo=` value in your host URL (see [Bookmark your host URL](#before-the-lecture-once) above)
@@ -65,7 +65,7 @@ host_shortlink: https://t.ly/abc   # optional, a short link participants can typ
 
 Step by step:
 
-1. **Create your repo** — fork [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiqui-questions) or start a fresh public GitHub repo
+1. **Create your repo** — use the [Create your own copy](#creating-your-own-question-repo) link above, or start a fresh public GitHub repo
 2. **Add `config.yaml`** to the repo root, using the template above as a starting point
 3. **Set `session_url`** to a unique value (see the next section — this is the important one)
 4. **Set `title`** to your lecture name — it appears as `QuiQui: <title>` on the host and participant pages
