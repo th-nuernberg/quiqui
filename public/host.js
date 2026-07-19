@@ -28,8 +28,11 @@ let revealedCorrectIndices = [];
 let currentVotes = {};
 let currentTotal = 0;
 let currentState = 'inactive';
-let runStart = 0;        // Date.now() when the question went active
+let runStart = 0;        // Date.now() when the current active spell began
 let runTimer = null;     // setInterval handle for the live stopwatch
+let runAccumulated = 0;  // ms of open time from prior active spells (before pauses),
+                         // so re-opening a paused question resumes the elapsed count
+                         // rather than restarting; reset to 0 when a new question is selected
 // The UI for a close is driven synchronously by the host action that caused
 // it (closeQuestion collapses the card, selectQuestion swaps to the new card).
 // The server's question-closed echo is then just confirmation. This flag marks
@@ -266,6 +269,7 @@ function selectQuestion(index) {
   selectedIndex = index;
   selectedQuestion = questions[index];
   revealedCorrectIndices = [];
+  runAccumulated = 0;  // fresh question — the resumable timer starts from zero
   currentVotes = {};
   currentTotal = 0;
   currentState = 'inactive';
@@ -392,17 +396,23 @@ function setState(state) {
 // updated once per second. Reverts to a normal badge in every other state.
 function startStopwatch() {
   if (runTimer) return;          // already running — keep the existing start time
-  runStart = Date.now();
+  runStart = Date.now();         // begin a new active spell; runAccumulated holds prior ones
   renderStopwatch();
   runTimer = setInterval(renderStopwatch, 1000);
 }
 
 function stopStopwatch() {
-  if (runTimer) { clearInterval(runTimer); runTimer = null; }
+  if (runTimer) {
+    clearInterval(runTimer);
+    runTimer = null;
+    // Fold the spell just ended into the accumulator so a later re-open resumes
+    // from here. Paused time (between now and the next start) is not counted.
+    runAccumulated += Date.now() - runStart;
+  }
 }
 
 function renderStopwatch() {
-  const secs = Math.floor((Date.now() - runStart) / 1000);
+  const secs = Math.floor((runAccumulated + (Date.now() - runStart)) / 1000);
   const mins = Math.floor(secs / 60);
   statusBadge.textContent = `● ${mins}:${String(secs % 60).padStart(2, '0')}`;
   statusBadge.className = 'badge-live badge-running';

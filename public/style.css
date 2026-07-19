@@ -156,8 +156,10 @@ select:focus {
 .btn-primary {
   background: var(--color-accent);
   color: #E6F1FB;
-  border: none;
-  padding: 8px 20px;
+  /* Transparent border matches btn-secondary's 0.5px outline so buttons keep
+     identical geometry when the state machine swaps their class. */
+  border: 0.5px solid transparent;
+  padding: 8px 16px;
   border-radius: var(--radius-md);
   font-size: 14px;
   font-family: var(--font);
@@ -184,7 +186,8 @@ select:focus {
 .btn-light {
   background: var(--color-accent-light);
   color: var(--color-accent-dark);
-  border: none;
+  /* Transparent border matches btn-secondary — see .btn-primary above. */
+  border: 0.5px solid transparent;
   padding: 8px 16px;
   border-radius: var(--radius-md);
   font-size: 14px;
@@ -203,6 +206,23 @@ select:focus {
   gap: 8px;
   margin-top: 1rem;
 }
+
+/* The Open/Pause toggle swaps its label between ▶ and the taller ⏸ glyph,
+   which renders ~2px higher (from a fallback font) and would grow the button
+   box on every toggle. Fixing the height and centering the label via flex
+   contains the glyph instead of letting it expand the box, so the button —
+   and the whole row's baseline — stays put across all states. */
+.btn-row > button {
+  height: 35px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* The toggle's label switches between "▶ Open" and the wider "⏸ Pause";
+   reserve the wider label's width so the button never resizes on toggle. */
+#btn-activate { min-width: 88px; }
 
 /* ─── File / repo row ──────────────────────────────────────────── */
 .file-row {
@@ -263,11 +283,21 @@ select:focus {
 }
 
 /* ─── Active question panel ────────────────────────────────────── */
-.active-header {
+/* Badges (timer + answered count) sit on their own right-aligned row above the
+   question, so the question text — and any code block inside it — spans the full
+   card width like the answer options below, with no reflow when the timer's text
+   width changes. */
+.active-badges {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  justify-content: flex-end;
   gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  min-height: 22px;   /* reserve the badge row height so the layout doesn't shift
+                         between states where a badge is hidden vs shown */
+}
+
+.active-header {
   margin-bottom: 14px;
 }
 
