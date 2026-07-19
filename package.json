@@ -7,7 +7,7 @@
   "scripts": {
     "start": "./start.sh",
     "dev": "GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=true GIT_PAGER=cat node --watch server.js",
-    "test": "node test/security.test.js && node test/basepath.test.js"
+    "test": "node test/security.test.js && node test/basepath.test.js && node test/images.test.js"
   },
   "dependencies": {
     "dompurify": "^3.4.8",

@@ -57,8 +57,24 @@ const VERSION_HTML =
 // 90 minutes after last question activation. Overridable via SESSION_TIMEOUT_MINUTES
 // (env, in minutes); the test suite can pass a fractional value to force a fast expiry.
 const SESSION_TIMEOUT_MS = (Number(process.env.SESSION_TIMEOUT_MINUTES) || 90) * 60 * 1000;
-const REPO_SIZE_LIMIT_KB = 1024;  // 1 MB — GitHub reports size in KB
-const FILE_SIZE_LIMIT_KB = 100;   // 100 KB per question file
+// Size limits — all overridable via env (in KB). Defaults keep small repos cheap:
+//   REPO  — whole repo, checked via GitHub API before clone (GitHub reports KB)
+//   FILE  — a single question YAML file, checked on load
+//   IMAGE — a single image served from the clone via /assets (see route below)
+const REPO_SIZE_LIMIT_KB  = Number(process.env.REPO_SIZE_LIMIT_KB)  || 1024; // 1 MB
+const FILE_SIZE_LIMIT_KB  = Number(process.env.FILE_SIZE_LIMIT_KB)  || 100;  // 100 KB per question file
+const IMAGE_SIZE_LIMIT_KB = Number(process.env.IMAGE_SIZE_LIMIT_KB) || 512;  // 512 KB per image
+
+// Image extensions the /assets route will serve from a pulled clone. Anything
+// else (config.yaml, .git/*, arbitrary files) is refused — /assets is an image
+// host for question repos, not a general file server. Kept lowercase; the route
+// lowercases the requested extension before checking.
+const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.svg']);
+const IMAGE_MIME = {
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif', '.webp': 'image/webp', '.avif': 'image/avif',
+  '.svg': 'image/svg+xml',
+};
 
 // ─── In-memory session state ──────────────────────────────────────────────────
 // Map of sessionId → session object.
@@ -291,6 +307,73 @@ app.get('/join/:sessionId', (req, res) => {
 // Projector view — read-only, shows QR + live results, optimised for beamer
 app.get('/view/:sessionId', (req, res) => {
   sendHtml(res, projectorHtml);
+});
+
+// Repo images — serve an image referenced by a question with a repo-relative
+// markdown path (e.g. ![](grafiken/foo.gif)) from that session's pulled clone.
+//
+// Public on purpose: participants and the projector render questions and have no
+// host token, so images must load without one — exactly like /join and /view.
+// The sessionId (session_url) is already the public join secret, so serving
+// images under it leaks nothing the join URL doesn't. Only image extensions are
+// served, so config.yaml, .git/*, and arbitrary repo files stay unreachable.
+//
+// The client rewrites relative image srcs to this shape (see mdHtml in the client
+// JS); the wildcard captures the sub-path under the repo (may contain slashes).
+app.get('/assets/:sessionId/*', (req, res) => {
+  const s = sessions.get(req.params.sessionId);
+  if (!s) return res.status(404).type('txt').send('Not found');
+
+  // Confirm the requested sub-path stays inside the clone. path.basename isn't
+  // enough — images live in subdirs (grafiken/…) — so resolve and prefix-check
+  // against the root. req.params[0] is already percent-decoded once by Express,
+  // so no extra decodeURIComponent here (a second decode would mangle filenames
+  // containing a literal % and re-open encoded-traversal). This lexical check
+  // defuses `..` and absolute paths in the sub-path.
+  const rel = req.params[0] || '';
+  const root = path.resolve(s.questionsDir);
+  const full = path.resolve(root, rel);
+  const inside = p => p === root || p.startsWith(root + path.sep);
+  if (!inside(full)) return res.status(403).type('txt').send('Forbidden');
+
+  const ext = path.extname(full).toLowerCase();
+  if (!IMAGE_EXTS.has(ext)) return res.status(403).type('txt').send('Forbidden');
+
+  // The lexical check above is purely string maths — it can't see symlinks. A
+  // committed symlink *directory* (e.g. `pics -> /`) would let `pics/etc/x.png`
+  // resolve inside the root lexically yet point outside on disk. Resolve the
+  // real path and re-check containment so a repo can't escape via any link in
+  // the chain. realpath also collapses the final symlink; combined with the
+  // lstat below (which refuses even an in-root final-component link) a repo
+  // hands us no links at all.
+  let real, realRoot;
+  try { real = fs.realpathSync(full); realRoot = fs.realpathSync(root); }
+  catch { return res.status(404).type('txt').send('Not found'); }
+  if (real !== realRoot && !real.startsWith(realRoot + path.sep)) {
+    return res.status(403).type('txt').send('Forbidden');
+  }
+
+  // lstat, not stat: refuse a symlink even if it points back inside the root —
+  // a repo shouldn't be able to hand us a link at all. Also gives the size.
+  let st;
+  try { st = fs.lstatSync(full); } catch { return res.status(404).type('txt').send('Not found'); }
+  if (!st.isFile()) return res.status(404).type('txt').send('Not found');
+  if (st.size > IMAGE_SIZE_LIMIT_KB * 1024) {
+    return res.status(413).type('txt').send(`Image too large (max ${IMAGE_SIZE_LIMIT_KB} KB)`);
+  }
+
+  // nosniff + a locked-down CSP so an SVG served here can never execute script,
+  // even if a browser were coaxed to treat it as a document. Images only ever
+  // load via <img> (from markdown ![]()), where script never runs anyway; this
+  // is belt-and-braces for the one format that can carry it.
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+  res.set('Cache-Control', 'no-cache');
+  res.type(IMAGE_MIME[ext] || 'application/octet-stream');
+  // Give send() its own independent containment (root + dotfile refusal) as
+  // defense in depth — a future regression in the checks above still can't
+  // become a read primitive.
+  res.sendFile(path.relative(root, full), { root, dotfiles: 'deny' });
 });
 
 // Legal pages

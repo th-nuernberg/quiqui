@@ -9,7 +9,22 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
     node.setAttribute('target', '_blank');
     node.setAttribute('rel', 'noopener noreferrer');
   }
+  // Repo-relative image paths (![](grafiken/x.png)) can't resolve on their own:
+  // the page lives at /join/:sessionId under <base href>, so a relative src would
+  // resolve to ${BASE_PATH}/grafiken/x.png (no sessionId). Rewrite it to the
+  // /assets/:sessionId/… route that serves it from the pulled clone. Absolute
+  // (http(s)) and data: srcs are external/inline and pass through untouched.
+  if (node.tagName === 'IMG') rewriteImgSrc(node, getSessionId());
 });
+
+// Point a relative <img src> at this session's /assets route. No-op for absolute
+// or data: URLs, or when we don't have a sessionId yet.
+function rewriteImgSrc(node, sessionId) {
+  const src = node.getAttribute('src') || '';
+  if (!sessionId || !src || /^(https?:|data:|\/\/)/i.test(src)) return;
+  const clean = src.replace(/^\.?\//, '').replace(/^\/+/, ''); // drop leading ./ or /
+  node.setAttribute('src', `${BASE_PATH}/assets/${encodeURIComponent(sessionId)}/${clean}`);
+}
 
 // Reverse-proxy subpath the app is served under ("" at root). Injected by the
 // server as window.__BASE_PATH__; socket.io must connect under it.

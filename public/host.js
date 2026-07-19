@@ -9,7 +9,21 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
     node.setAttribute('target', '_blank');
     node.setAttribute('rel', 'noopener noreferrer');
   }
+  // Repo-relative image paths (![](grafiken/x.png)) are rewritten to this
+  // session's /assets route so the host preview shows the same images the room
+  // sees. currentSessionId is set after a pull; before that (no session yet)
+  // the rewrite is a no-op. Absolute and data: srcs pass through untouched.
+  if (node.tagName === 'IMG') rewriteImgSrc(node, currentSessionId);
 });
+
+// Point a relative <img src> at this session's /assets route. No-op for absolute
+// or data: URLs, or when we don't have a sessionId yet.
+function rewriteImgSrc(node, sessionId) {
+  const src = node.getAttribute('src') || '';
+  if (!sessionId || !src || /^(https?:|data:|\/\/)/i.test(src)) return;
+  const clean = src.replace(/^\.?\//, '').replace(/^\/+/, '');
+  node.setAttribute('src', `${BASE_PATH}/assets/${encodeURIComponent(sessionId)}/${clean}`);
+}
 
 // BASE_PATH is the reverse-proxy subpath the app is served under ("" at root,
 // "/quiqui" behind a non-stripping proxy). The server injects the authoritative
