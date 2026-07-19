@@ -260,6 +260,13 @@ select:focus {
 
 .q-item:hover { background: var(--color-bg-secondary); }
 
+/* A question that has been opened at least once this session — greyed out to
+   help orientation in long decks. Darker than the plain/hover backgrounds
+   (reuses the page's own background tone) so it reads as "already covered"
+   rather than just "hovered". active-q (the currently open card) overrides it. */
+.q-item.visited { background: var(--color-bg-tertiary); }
+.q-item.visited:hover { background: var(--color-bg-secondary); }
+
 .q-item.active-q {
   border-color: var(--color-accent);
   background: var(--color-accent-light);

@@ -42,6 +42,12 @@ let revealedCorrectIndices = [];
 let currentVotes = {};
 let currentTotal = 0;
 let currentState = 'inactive';
+// Indices opened for voting at least once this session — greyed out in the list
+// (see renderQuestionList) so a long deck stays easy to orient in. Marked in
+// setState() the moment a question goes 'active', not merely on preview/select,
+// so browsing the list without opening anything doesn't grey it out. Reset on
+// every fresh pull/file load alongside the rest of the per-load state.
+let visitedIndices = new Set();
 let runStart = 0;        // Date.now() when the current active spell began
 let runTimer = null;     // setInterval handle for the live stopwatch
 let runAccumulated = 0;  // ms of open time from prior active spells (before pauses),
@@ -221,6 +227,7 @@ async function loadFile() {
     questions = data.questions || [];
     selectedQuestion = null;
     selectedIndex = -1;
+    visitedIndices = new Set(); // fresh file/reload — nothing opened yet
     renderQuestionList();
     sectionQuestions.style.display = '';
     sectionActive.style.display = 'none';
@@ -248,7 +255,7 @@ function renderQuestionList() {
   questionList.innerHTML = '';
   questions.forEach((q, i) => {
     const item = document.createElement('div');
-    item.className = 'q-item';
+    item.className = 'q-item' + (visitedIndices.has(i) ? ' visited' : '');
     item.dataset.index = i;
     item.tabIndex = 0;
     item.innerHTML = `
@@ -272,10 +279,15 @@ function selectQuestion(index) {
   if (sessionExpired) { alert('Session has expired. Pull the repo again to start a new session.'); return; }
 
   // A live poll (active/deactivated/revealed) has participants watching it. Switching
-  // away tears it down server-side and sends those participants to the waiting screen,
-  // so confirm before doing it. inactive/closed have nothing live to disturb.
+  // away tears it down server-side and sends those participants to the waiting screen.
+  // Confirm first for active/deactivated — voting could still be in progress there, or
+  // the host hasn't shown correct answers yet, so switching away is easy to do by
+  // accident. revealed means the host has already finished with this question (answers
+  // shown, nothing left to lose), so advancing — e.g. via Next question — proceeds
+  // straight through with no prompt.
   const pollIsLive = ['active', 'deactivated', 'revealed'].includes(currentState);
-  if (pollIsLive && !confirm('Close the current poll and switch to this question?')) return;
+  const needsConfirm = ['active', 'deactivated'].includes(currentState);
+  if (needsConfirm && !confirm('Close the current poll and switch to this question?')) return;
   if (pollIsLive && currentSessionId) {
     selfInitiatedClose = true; // the echo is just confirming this teardown; the new card is rendered below
     socket.emit('close-question', { sessionId: currentSessionId, token: HOST_TOKEN });
@@ -360,6 +372,12 @@ function setState(state) {
   };
   statusBadge.style.display = state ? '' : 'none';
   if (state === 'active') {
+    // Opened for voting — mark it visited so the list greys it out from now on
+    // (see renderQuestionList / .q-item.visited in style.css).
+    if (selectedIndex >= 0) {
+      visitedIndices.add(selectedIndex);
+      questionList.querySelector(`.q-item[data-index="${selectedIndex}"]`)?.classList.add('visited');
+    }
     // While active, the badge becomes a live red stopwatch counting up.
     startStopwatch();
   } else {
