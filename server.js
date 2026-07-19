@@ -62,7 +62,7 @@ const FILE_SIZE_LIMIT_KB = 100;   // 100 KB per question file
 
 // ─── In-memory session state ──────────────────────────────────────────────────
 // Map of sessionId → session object.
-// { sessionId, repoUrl, questionsDir, activeQuestion, title, votes, voters, open, lastActivity }
+// { sessionId, repoUrl, questionsDir, activeQuestion, title, shuffle, votes, voters, open, lastActivity }
 const sessions = new Map();
 
 // Single interval that reaps sessions idle for longer than SESSION_TIMEOUT_MS.
@@ -210,6 +210,32 @@ function toCorrectIndices(correct) {
     .filter(Boolean)
     .map(l => 'abcdefghijklmnopqrstuvwxyz'.indexOf(l))
     .filter(i => i >= 0);
+}
+
+// Fisher–Yates shuffle of one question's answers, keeping the correct-answer
+// letters pointing at their options. Returns a NEW question object; the input is
+// untouched. Answers are permuted and the `correct` field is rewritten to the
+// letters of the answers' new positions, so toCorrectIndices() and the reveal
+// stay correct with no changes downstream. Questions with fewer than 2 answers
+// (shouldn't happen post-validation) are returned unchanged.
+function shuffleAnswers(q) {
+  const n = q.answers.length;
+  if (n < 2) return q;
+  // Pair each answer with whether it is a correct one (by original index).
+  const correctSet = new Set(toCorrectIndices(q.correct));
+  const items = q.answers.map((text, i) => ({ text, correct: correctSet.has(i) }));
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+  const answers = items.map(it => it.text);
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const newCorrect = items
+    .map((it, i) => (it.correct ? letters[i] : null))
+    .filter(Boolean);
+  // Match the original shape: single answer stays a bare letter, multiple stays a list.
+  const correct = q.type === 'multiple' ? newCorrect : (newCorrect[0] || q.correct);
+  return { ...q, answers, correct };
 }
 
 function touchSession(sessionId) {
@@ -503,6 +529,7 @@ app.post('/api/pull', requireHost, async (req, res) => {
         activeQuestion: null,
         title: config.title || null,
         shortlink,
+        shuffle: config.shuffle === true,
         votes: {},
         voters: new Set(),
         open: false,
@@ -522,6 +549,7 @@ app.post('/api/pull', requireHost, async (req, res) => {
       existing.questionsDir = questionsDir;
       existing.title = config.title || null;
       existing.shortlink = shortlink;
+      existing.shuffle = config.shuffle === true;
       existing.answersRevealed = false;
       existing.lastActivity = Date.now();
       // Notify participants of the new token so their sessionStorage keys are invalidated
@@ -568,7 +596,12 @@ app.get('/api/questions', requireHost, async (req, res) => {
     const validationError = validateQuestions(questions, safe);
     if (validationError) return res.status(400).json({ error: validationError });
     touchSession(sessionId);
-    res.json({ questions });
+    // Optional per-session answer shuffling (config.yaml `shuffle: true`).
+    // A per-question `shuffle: false` opts an individual question out.
+    const shuffled = questions.map(q =>
+      (s.shuffle && q.shuffle !== false) ? shuffleAnswers(q) : q
+    );
+    res.json({ questions: shuffled });
   } catch (err) {
     res.status(500).json({ error: 'Failed to parse YAML: ' + err.message });
   }

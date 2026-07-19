@@ -61,6 +61,7 @@ Every question repo needs a `config.yaml` in its root. Start from the template: 
 session_url: thn-db-alb      # unique participant join URL segment — see below
 title: Databases             # shown as "QuiQui: Databases" in header and tab
 host_shortlink: https://t.ly/abc   # optional, a short link participants can type
+shuffle: true                # optional, randomise answer order each session (default off)
 ```
 
 Step by step:
@@ -70,7 +71,8 @@ Step by step:
 3. **Set `session_url`** to a unique value (see the next section — this is the important one)
 4. **Set `title`** to your lecture name — it appears as `QuiQui: <title>` on the host and participant pages
 5. **Optionally set `host_shortlink`** if you have a short URL (e.g. from t.ly or your own redirect) that's easier for participants to type than the full `/join/...` link
-6. **Commit and push** — your repo is now ready to use
+6. **Optionally set `shuffle: true`** to randomise each question's answer order — handy when you keep the correct answer first in your file, or reuse a public question deck. The order is fixed for the whole room and reshuffles every time you Load questions. Add `shuffle: false` to an individual question to keep its order (e.g. "All of the above" or a deliberately ordered list)
+7. **Commit and push** — your repo is now ready to use
 
 ### Choosing a unique `session_url`
 
