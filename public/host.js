@@ -336,7 +336,7 @@ function setState(state) {
   const labels = {
     inactive:    '◌ Inactive',
     active:      '● Active',
-    deactivated: '◼ Deactivated',
+    deactivated: '◼ Paused',
     revealed:    '◼ Revealed',
     closed:      '◼ Closed',
   };
@@ -352,9 +352,9 @@ function setState(state) {
   }
 
   // Activate button toggles label and tooltip based on state
-  btnActivate.textContent = state === 'active' ? '⏹ Deactivate' : '▶ Activate';
+  btnActivate.textContent = state === 'active' ? '⏸ Pause' : '▶ Open';
   btnActivate.title = state === 'active'
-    ? 'Stop voting, but do not reveal correct answer(s), re-activation possible.'
+    ? 'Pause voting, but do not reveal correct answer(s), re-opening possible.'
     : 'Open question for voting.';
 
   // Button styles and disabled state per state:

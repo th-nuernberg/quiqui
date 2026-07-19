@@ -98,12 +98,12 @@ To change questions later, edit the `.yaml` files in GitHub and click **Pull lat
 1. **Open your bookmarked host URL** — the repo is pulled automatically and the QR code appears
 2. **Project the QR code** so participants can join (or share the URL verbally)
 3. **Select a question file** from the dropdown, then click a question to preview it
-4. **Click ▶ Activate** — voting opens; badge shows **● Active**. Click again (**⏹ Deactivate**) to stop voting without revealing answers — participants see the result bars but no highlights
+4. **Click ▶ Open** — voting opens; badge shows **● Active**. Click again (**⏸ Pause**) to stop voting without revealing answers — participants see the result bars but no highlights
 5. **Click ✓ Reveal** to show the correct answers highlighted in green for everyone in the room
 6. **Click ✕ Close** to send participants back to the waiting screen without revealing answers
 7. **Click Next question →** to move on — participants return to the waiting screen automatically
 
-> **Happy path:** Activate → (participants vote) → Reveal → Close → Next question →
+> **Happy path:** Open → (participants vote) → Reveal → Close → Next question →
 
 > **Tip:** Open the host page a minute before class to make sure your repo pulls cleanly and the QR code is ready before participants arrive.
 
@@ -117,13 +117,13 @@ To change questions later, edit the `.yaml` files in GitHub and click **Pull lat
 
 <img src="public/participant-view.png" alt="Participant View" width="400" />
 
-Participants visit the join URL or scan the QR code — no login, no app install. They see "Waiting for the next question" until you activate a question. After submitting their answer (only once per question), the result bars appear live under each answer option.
+Participants visit the join URL or scan the QR code — no login, no app install. They see "Waiting for the next question" until you open a question. After submitting their answer (only once per question), the result bars appear live under each answer option.
 
-- **Deactivate** — participants see the bars without correct answer highlights
+- **Pause** — participants see the bars without correct answer highlights
 - **Reveal** — correct answers highlighted in green for everyone
 - **Close** — participants return to the waiting screen
 
-If a participant hasn't voted when you deactivate or reveal, they see "Voting has ended." and the bars — but cannot submit. If a participant refreshes after submitting, they see the question with bars but cannot submit again.
+If a participant hasn't voted when you pause or reveal, they see "Voting has ended." and the bars — but cannot submit. If a participant refreshes after submitting, they see the question with bars but cannot submit again.
 
 ---
 

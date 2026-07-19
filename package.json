@@ -1,6 +1,6 @@
 {
   "name": "quiqui",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Live audience response tool for lectures, meetings, and talks",
   "license": "AGPL-3.0-or-later",
   "main": "server.js",

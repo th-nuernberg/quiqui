@@ -7,7 +7,7 @@
 No host or participant sign-up. No app to install. No login. No admin panel to click through — **your questions are just YAML files in a GitHub repo.** 
 See [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiqui-questions) for example.
 
-You activate a question, participants scan a QR code and answer on their phones, and the whole room watches the results fill in on a live bar chart. Reveal the correct answer whenever you like — it lights up green for everyone at once.
+You open a question for voting, participants scan a QR code and answer on their phones, and the whole room watches the results fill in on a live bar chart. Reveal the correct answer whenever you like — it lights up green for everyone at once.
 
 **→ [Try the hosted instance](https://kiz1.in.ohmportal.de/quiqui)** — no setup required  
 **→ [Quickstart for lecturers](QUICKSTART.md)** — your own quiz running in 5 minutes  
@@ -57,7 +57,7 @@ There is always an instance running at [kiz1.in.ohmportal.de/quiqui](https://kiz
 - **Host-paced** — the host controls which question is active; participants cannot browse ahead
 - **No participant login** — participants join by scanning a QR code or visiting a URL
 - **Live results** — bar chart updates in real time as participants submit
-- **Four-state flow** — Activate → Deactivate (bars, no highlights) → Reveal (correct answers highlighted) → Close (participants return to waiting screen)
+- **Four-state flow** — Open → Pause (bars, no highlights) → Reveal (correct answers highlighted) → Close (participants return to waiting screen)
 - **Reveal answer** — host reveals correct answers; correct options are highlighted in green for everyone in the room
 - **Projector view** — read-only beamer view showing the QR code and live results, separate from the host controls
 - **Run timer** — while a question is active, the host view shows a live stopwatch counting up, so the host can see how long voting has been open
