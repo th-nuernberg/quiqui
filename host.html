@@ -30,9 +30,23 @@
           </button>
         </div>
         <div class="file-row" id="file-row" style="margin-top: 10px; display:none;">
-          <select id="file-select">
+          <!-- Real <select>, kept as the source of truth for value/change (loadFile()
+               listens to it unchanged) but visually hidden — see .sr-only. iOS/iPadOS
+               Safari renders an open <select> with its own native picker sheet that
+               page CSS cannot reach at all (font size, row height, wrapping), which
+               makes long or numerous filenames unreadable. #file-select-btn +
+               #file-select-menu below are a fully custom-styled replacement UI that
+               drives this hidden select programmatically. -->
+          <select id="file-select" class="sr-only" tabindex="-1" aria-hidden="true">
             <option value="">— select a question file —</option>
           </select>
+          <div class="dropdown" id="file-dropdown">
+            <button type="button" class="dropdown-btn" id="file-select-btn" aria-haspopup="listbox" aria-expanded="false">
+              <span id="file-select-label">— select a question file —</span>
+              <span class="dropdown-caret">▾</span>
+            </button>
+            <ul class="dropdown-menu" id="file-select-menu" role="listbox" tabindex="-1" hidden></ul>
+          </div>
         </div>
         <div class="meta-line" id="pull-status"></div>
 

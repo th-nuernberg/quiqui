@@ -83,6 +83,10 @@ const repoInput        = document.getElementById('repo-url');
 const btnPull          = document.getElementById('btn-pull');
 const fileSelect       = document.getElementById('file-select');
 const fileRow          = document.getElementById('file-row');
+const fileDropdown     = document.getElementById('file-dropdown');
+const fileSelectBtn    = document.getElementById('file-select-btn');
+const fileSelectLabel  = document.getElementById('file-select-label');
+const fileSelectMenu   = document.getElementById('file-select-menu');
 const pullStatus       = document.getElementById('pull-status');
 const sectionQuestions = document.getElementById('section-questions');
 const questionList     = document.getElementById('question-list');
@@ -110,6 +114,7 @@ const connectionIndicator = document.getElementById('connection-indicator');
   btnPull.addEventListener('click', () => pullRepo());
   repoInput.addEventListener('keydown', e => { if (e.key === 'Enter') pullRepo(); });
   fileSelect.addEventListener('change', loadFile);
+  initFileDropdown();
 
   if (repo) {
     pullRepo();
@@ -121,6 +126,77 @@ const connectionIndicator = document.getElementById('connection-indicator');
 function setStatus(msg, isError = false) {
   pullStatus.textContent = msg;
   pullStatus.classList.toggle('meta-line--error', isError);
+}
+
+// ─── Custom file dropdown ──────────────────────────────────────────────────
+// Replaces the native <select> UI (see the comment on #file-select in
+// host.html). The hidden #file-select stays the single source of truth for
+// the current value: choosing an item here just sets fileSelect.value and
+// dispatches 'change', so loadFile() — and everything else — is unchanged.
+function initFileDropdown() {
+  fileSelectBtn.addEventListener('click', () => {
+    if (fileSelectMenu.hidden) openFileDropdown(); else closeFileDropdown();
+  });
+  fileSelectBtn.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openFileDropdown();
+      fileSelectMenu.querySelector('[aria-selected="true"], .dropdown-item')?.focus();
+    }
+  });
+  document.addEventListener('click', e => {
+    if (!fileDropdown.contains(e.target)) closeFileDropdown();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !fileSelectMenu.hidden) { closeFileDropdown(); fileSelectBtn.focus(); }
+  });
+}
+
+function openFileDropdown() {
+  if (!fileSelectMenu.children.length) return; // nothing to pick yet
+  fileSelectMenu.hidden = false;
+  fileSelectBtn.setAttribute('aria-expanded', 'true');
+}
+
+function closeFileDropdown() {
+  fileSelectMenu.hidden = true;
+  fileSelectBtn.setAttribute('aria-expanded', 'false');
+}
+
+// Rebuild the dropdown's rows from the same filenames used to populate the
+// hidden <select> (see pullRepo). Called once per pull, right after that.
+function renderFileDropdown() {
+  fileSelectMenu.innerHTML = '';
+  [...fileSelect.options].forEach(opt => {
+    if (!opt.value) return; // skip the placeholder option
+    const li = document.createElement('li');
+    li.className = 'dropdown-item';
+    li.textContent = opt.value;
+    li.title = opt.value; // full name on hover/long-press since the row itself truncates
+    li.setAttribute('role', 'option');
+    li.tabIndex = -1;
+    li.setAttribute('aria-selected', opt.value === fileSelect.value ? 'true' : 'false');
+    li.addEventListener('click', () => selectFile(opt.value));
+    li.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectFile(opt.value); }
+      if (e.key === 'ArrowDown') { e.preventDefault(); li.nextElementSibling?.focus(); }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); (li.previousElementSibling || fileSelectBtn).focus(); }
+      if (e.key === 'Escape')    { closeFileDropdown(); fileSelectBtn.focus(); }
+    });
+    fileSelectMenu.appendChild(li);
+  });
+}
+
+function selectFile(value) {
+  fileSelect.value = value;
+  fileSelectLabel.textContent = value;
+  fileSelectLabel.title = value;
+  fileSelectMenu.querySelectorAll('.dropdown-item').forEach(li => {
+    li.setAttribute('aria-selected', li.textContent === value ? 'true' : 'false');
+  });
+  closeFileDropdown();
+  fileSelectBtn.focus();
+  fileSelect.dispatchEvent(new Event('change'));
 }
 
 // ─── Repo pull ────────────────────────────────────────────────────────────────
@@ -149,21 +225,19 @@ async function pullRepo(force = false) {
       throw new Error(data.error);
     }
 
-    // Populate file dropdown — hidden until a repo is pulled for the first time
+    // Populate file dropdown — hidden until a repo is pulled for the first time.
+    // fileSelect is the real (visually hidden) value/change source of truth;
+    // renderFileDropdown() below builds the visible custom UI from these options.
     fileSelect.innerHTML = '<option value="">— select a question file —</option>';
     data.files.forEach(f => {
       const opt = document.createElement('option');
       opt.value = f;
-      // iOS/iPadOS Safari renders the open <select> list with its own native
-      // picker UI, which page CSS can't reach at all — no font-size, spacing,
-      // or word-break rule applies there. Long filenames with underscores
-      // instead of hyphens (e.g. SBF_BINNEN_-Fahrzeugfuehrung_02_...) have no
-      // break opportunity the OS line-breaker recognises, so it force-breaks
-      // mid-word. A zero-width space after each underscore gives it a legal,
-      // invisible break point — value/submitted text is unaffected.
-      opt.textContent = f.replace(/_/g, '_​');
+      opt.textContent = f;
       fileSelect.appendChild(opt);
     });
+    fileSelectLabel.textContent = '— select a question file —';
+    fileSelectLabel.title = '';
+    renderFileDropdown();
     fileRow.style.display = '';
 
     // sessionId is always returned by the server (from config.session_url or random fallback)

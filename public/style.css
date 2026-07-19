@@ -231,6 +231,105 @@ select:focus {
   gap: 8px;
 }
 
+/* Visually hidden but still focusable/readable by assistive tech and still a
+   real form control (loadFile() listens to its value/change unchanged). */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ─── Custom file dropdown (replaces the native <select> UI) ─────────────
+   iOS/iPadOS Safari renders an open <select> with its own native picker
+   sheet, which page CSS cannot reach at all — no font-size, row height, or
+   wrap control applies there. Long or numerous filenames become unreadable.
+   This is a fully custom-styled replacement: same size/font as the repo-URL
+   text field, one line per file, truncated with an ellipsis — never wrapped. */
+.dropdown { position: relative; flex: 1; width: 100%; }
+
+.dropdown-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  font-size: 14px;
+  font-family: var(--font);
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 0.5px solid var(--color-border-mid);
+  border-radius: var(--radius-md);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.dropdown-btn:focus,
+.dropdown-btn[aria-expanded="true"] {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(24,95,165,0.12);
+}
+
+#file-select-label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dropdown-caret {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.dropdown-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--color-bg);
+  border: 0.5px solid var(--color-border-mid);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.dropdown-item {
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: var(--font);
+  color: var(--color-text);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown-item:hover,
+.dropdown-item.dropdown-item--active {
+  background: var(--color-bg-secondary);
+}
+
+.dropdown-item[aria-selected="true"] {
+  background: var(--color-accent-light);
+  color: var(--color-accent-text);
+}
+
 /* ─── Question list ────────────────────────────────────────────── */
 .question-list {
   display: flex;
