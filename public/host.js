@@ -154,7 +154,14 @@ async function pullRepo(force = false) {
     data.files.forEach(f => {
       const opt = document.createElement('option');
       opt.value = f;
-      opt.textContent = f;
+      // iOS/iPadOS Safari renders the open <select> list with its own native
+      // picker UI, which page CSS can't reach at all — no font-size, spacing,
+      // or word-break rule applies there. Long filenames with underscores
+      // instead of hyphens (e.g. SBF_BINNEN_-Fahrzeugfuehrung_02_...) have no
+      // break opportunity the OS line-breaker recognises, so it force-breaks
+      // mid-word. A zero-width space after each underscore gives it a legal,
+      // invisible break point — value/submitted text is unaffected.
+      opt.textContent = f.replace(/_/g, '_​');
       fileSelect.appendChild(opt);
     });
     fileRow.style.display = '';
