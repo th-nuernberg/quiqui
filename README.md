@@ -20,34 +20,34 @@ You open a question for voting, participants scan a QR code and answer on their 
 Commercial quiz and poll tools want an account, a subscription, your participants' data, and a lot of tedious clicking to create your questions. 
 QuiQui makes **live in-class polling as simple as possible.**
 
-**Everything is injected from your Git repo — the tool stores nothing**
-Your questions *and* everything that defines a session — the join URL, the title, the correct answers, the explanations — are **injected from your GitHub repo** each time you pull. QuiQui itself keeps no database, no local files, no accounts: the repo is the single source of truth, and pointing QuiQui at it is all it takes for a session to appear. Nothing about your content lives inside the tool.
+**Everything is injected from your Git repo — the tool stores nothing.**
+Your questions *and* everything that defines a session — the join URL, the title, the correct answers, the explanations — are loaded from your GitHub repo. QuiQui itself keeps no database, no local files, no accounts: the repo is the single source of truth, and pointing QuiQui at it is all it takes for a session to appear. Nothing about your content or your identity lives inside the tool.
 
-This is **dependency injection / inversion of control** applied to quiz content: QuiQui is a stateless renderer that has its concrete session — questions and configuration — supplied from an external Git repo at pull time, rather than owning or hard-coding any of it.
-
-**Your questions are plain text in Git**
+**Your questions are plain text in Git.**
 Write questions as simple YAML in a public GitHub repo. Version them, diff them, copy them between courses, edit them in your favourite editor. No clunky web form, no vendor lock-in — pull the latest into a session anytime.
 
-**Built for real teaching content**
+**Built for real teaching content.**
 Full **Markdown and LaTeX** support in questions *and* answers — code blocks, inline code, and proper math render beautifully. Single- and multiple-choice per question.
 
-**Zero friction for participants**
+**Zero friction for participants.**
 They scan a QR code (or type a short URL) and they're in. No login, no app, no email. Works on any phone with a browser.
 
-**Live results, host-paced**
+**Live results, host-paced.**
 You decide which question is live — participants can't skip ahead. The bar chart updates in real time as votes land, then you **reveal the correct answer** with one click and it turns green on every screen in the room.
 
-**A view for every screen**
+**A view for every screen.**
 A dedicated **projector view** shows the QR code and live results on the beamer, while you drive everything from the host view — complete with a live stopwatch so you know how long voting's been open.
 
-**Yours to run, free and private**
-No database, no tracking, no scoring leaderboards. Session state lives in memory and vanishes when the quiz ends. **Self-host it anywhere Node.js runs** — there's no build step. One instance happily serves many lecturers at once.
+**Yours to run, free and private.**
+No database, no tracking, no scoring leaderboards. Session state lives in memory and vanishes when the quiz ends. 
 
 ---
 
 ## Hosted service
 
 There is always an instance running at [kiz1.in.ohmportal.de/quiqui](https://kiz1.in.ohmportal.de/quiqui) — no setup required, and free to use. To get access as a lecturer, just ask for the host URL — [reach out to us](https://kiz1.in.ohmportal.de/quiqui/impressum#en) at the address on our Impressum.
+
+For self-hosting see [Installation](#installation) below.
 
 ---
 
@@ -170,12 +170,6 @@ BASE_PATH=/quiqui   # in .env — no trailing slash
 
 In both cases the proxy must pass through the original `Host` header (and the usual `Upgrade`/`Connection` headers for the Socket.io WebSocket). `BASE_PATH` defaults to empty, so a root deployment needs no configuration.
 
----
-
-## Deployment
-
-See [Hosted service](#hosted-service) above to use our instance instead of running your own. To run your own, deploy the Docker image or the Node server anywhere Node.js runs — QuiQui keeps no persistent state, so no database or volumes are needed.
-
 ### Releases
 
 Releases are cut from version tags. Pushing a `v*` tag triggers the CI pipeline (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)), which — only after the test suite passes:
@@ -249,27 +243,6 @@ quiqui/
 
 **Why is `host.html` outside `public/`?**  
 Everything in `public/` is served statically and is publicly accessible by filename. Moving `host.html` to the project root means it can only be reached through the slug route — visiting `/host.html` directly returns 404.
-
----
-
-## Socket.io events
-
-| Event | Direction | Payload | Description |
-|---|---|---|---|
-| `join-session` | client → server | `{ sessionId }` | Participant joins a session room |
-| `session-state` | server → client | `{ exists, question, votes, open, total, title, shortlink, answersRevealed, deactivated, correctIndices }` | Current state sent on join |
-| `session-created` | server → clients | `{ title, shortlink }` | Emitted when a host pulls a repo; updates waiting participants |
-| `activate-question` | client → server | `{ question, sessionId, token, title }` | Host activates a question; re-activating the same question preserves votes |
-| `question-activated` | server → clients | `{ question, votes, total, title }` | Broadcast to all participants; includes current vote counts for re-activate |
-| `submit-answer` | client → server | `{ sessionId, selected: [0, 2] }` | Participant submits answer indices |
-| `vote-update` | server → clients | `{ votes, total }` | Broadcast after each new vote |
-| `deactivate-question` | client → server | `{ sessionId, token }` | Host pauses voting; participants see bars without highlights |
-| `question-deactivated` | server → clients | `{ votes, total }` | Participants see result bars; submit disabled |
-| `show-answer` | client → server | `{ sessionId, token }` | Host reveals correct answers |
-| `answer-revealed` | server → clients | `{ correctIndices, votes, total }` | Participants see green highlights on correct options |
-| `close-question` | client → server | `{ sessionId, token }` | Host sends participants back to waiting screen |
-| `question-closed` | server → clients | — | Participants return to waiting screen; active question cleared |
-| `session-expired` | server → clients | — | Session timed out; host UI locked, participants see "no session" message |
 
 ---
 
