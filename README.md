@@ -1,10 +1,10 @@
 <img src="public/quiqui-logo.png" alt="QuiQui" width="240" />
 
-# Live quiz & audience response tool for lectures, meetings, and talks — AI-ready, YAML questions in Git, no accounts, no database
+# Live quiz & audience response tool for lectures, meetings, and talks — fully open-source, AI-ready, YAML questions in Git, no accounts, no database
 
-**QuiQui — short for *quick quiz* — is a free, open-source live quiz tool that turns any room into a live poll in seconds.** 
+**QuiQui — short for *quick quiz* — is a free, self-hostable quiz tool where questions are plain YAML text in a Git repo. Write them yourself or hand a topic to ChatGPT or Claude. No cap on how many people can join.**
 
-No host or participant sign-up. No app to install. No login. No admin panel to click through — **your questions are just YAML files in a GitHub repo**, so ChatGPT, Claude, or any AI assistant can draft a whole question file for you in one prompt — no vendor AI add-on required.
+No host or participant sign-up. No app to install. No login. No admin panel to click through — **your questions are just YAML files in a GitHub repo**, so ChatGPT, Claude, or any AI assistant can draft a whole question file for you in one prompt — no vendor AI add-on required. Full Markdown, LaTeX math, code blocks, and images are supported out of the box.
 See [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiqui-questions) for example.
 
 You open a question for voting, participants scan a QR code and answer on their phones, and the whole room watches the results fill in on a live bar chart. Reveal the correct answer whenever you like — it lights up green for everyone at once.
@@ -30,7 +30,7 @@ Write questions as simple YAML in a public GitHub repo. Version them, diff them,
 Because questions are just text, drafting them isn't locked behind a paywalled "AI Quiz Generator" button. Paste our [ready-made prompt](https://github.com/th-nuernberg/quiqui-questions#generate-questions-with-an-ai-assistant) into any assistant you already use — ChatGPT, Claude, whatever — describe your topic, and paste the YAML it hands back straight into your repo. A whole lecture's worth of questions, generated and version-controlled in minutes.
 
 **Built for real teaching content.**
-Full **Markdown and LaTeX** support in questions *and* answers — code blocks, inline code, and proper math render beautifully. Single- and multiple-choice per question.
+Markdown, LaTeX math, code blocks, and images in questions *and* answers — the things a real lecture is made of, not just plain text. Single- and multiple-choice per question.
 
 **Zero friction for participants.**
 They scan a QR code (or type a short URL) and they're in. No login, no app, no email. Works on any phone with a browser.
