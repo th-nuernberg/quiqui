@@ -1,10 +1,10 @@
 <img src="public/quiqui-logo.png" alt="QuiQui" width="240" />
 
-# Live quiz & audience response tool for lectures, meetings, and talks — no accounts, no database, everything injected from a YAML question repo
+# Live quiz & audience response tool for lectures, meetings, and talks — AI-ready, YAML questions in Git, no accounts, no database
 
 **QuiQui — short for *quick quiz* — is a free, open-source live quiz tool that turns any room into a live poll in seconds.** 
 
-No host or participant sign-up. No app to install. No login. No admin panel to click through — **your questions are just YAML files in a GitHub repo.** 
+No host or participant sign-up. No app to install. No login. No admin panel to click through — **your questions are just YAML files in a GitHub repo**, so ChatGPT, Claude, or any AI assistant can draft a whole question file for you in one prompt — no vendor AI add-on required.
 See [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiqui-questions) for example.
 
 You open a question for voting, participants scan a QR code and answer on their phones, and the whole room watches the results fill in on a live bar chart. Reveal the correct answer whenever you like — it lights up green for everyone at once.
@@ -25,6 +25,9 @@ Your questions *and* everything that defines a session — the join URL, the tit
 
 **Your questions are plain text in Git.**
 Write questions as simple YAML in a public GitHub repo. Version them, diff them, copy them between courses, edit them in your favourite editor. No clunky web form, no vendor lock-in — pull the latest into a session anytime.
+
+**Write questions with AI, not a form.**
+Because questions are just text, drafting them isn't locked behind a paywalled "AI Quiz Generator" button. Paste our [ready-made prompt](https://github.com/th-nuernberg/quiqui-questions#generate-questions-with-an-ai-assistant) into any assistant you already use — ChatGPT, Claude, whatever — describe your topic, and paste the YAML it hands back straight into your repo. A whole lecture's worth of questions, generated and version-controlled in minutes.
 
 **Built for real teaching content.**
 Full **Markdown and LaTeX** support in questions *and* answers — code blocks, inline code, and proper math render beautifully. Single- and multiple-choice per question.
@@ -64,6 +67,7 @@ For self-hosting see [Installation](#installation) below.
 - **Single and multiple choice** — per-question type configured in YAML
 - **Markdown and LaTeX** — question text and answers support code blocks, inline code, and math expressions
 - **Questions in Git** — question files are plain YAML in a public GitHub repo; versionable, diffable, reusable, no admin interface needed
+- **AI-assisted question writing** — a [ready-made prompt](https://github.com/th-nuernberg/quiqui-questions#generate-questions-with-an-ai-assistant) lets any LLM (ChatGPT, Claude, …) draft a whole question file in the correct YAML format; no built-in AI add-on to pay for or get locked into
 - **Optional shortlink** — a host-provided `host_shortlink` in `config.yaml` is shown in the host view and used in place of the long join URL on the projector, so participants can type a memorable address
 - **Multiple concurrent sessions** — each repo's `session_url` defines an independent session; the URL must be unique per host (e.g. `tum-python101`), as two sessions with the same `session_url` from different repos cannot coexist
 - **No database** — the only state is the live session, held in memory and intentionally ephemeral; it vanishes on restart or when the session ends
