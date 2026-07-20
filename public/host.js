@@ -398,16 +398,19 @@ function selectQuestion(index) {
   statAnsweredBadge.style.display = '';
   setState('inactive');
 
-  if (selectedQuestion.explanation) {
-    const correct = selectedQuestion.correct;
-    if (correct != null) {
-      const letters = (Array.isArray(correct) ? correct : [correct])
-        .map(l => String(l).trim()[0].toUpperCase())
-        .join(', ');
-      explanationEl.innerHTML = `${letters}: ${mdInline(selectedQuestion.explanation)}`;
-    } else {
-      explanationEl.innerHTML = mdInline(selectedQuestion.explanation);
-    }
+  const correct = selectedQuestion.correct;
+  const letters = correct != null
+    ? (Array.isArray(correct) ? correct : [correct]).map(l => String(l).trim()[0].toUpperCase()).join(', ')
+    : null;
+
+  if (letters != null && selectedQuestion.explanation) {
+    explanationEl.innerHTML = `${letters}: ${mdInline(selectedQuestion.explanation)}`;
+    explanationEl.style.display = '';
+  } else if (selectedQuestion.explanation) {
+    explanationEl.innerHTML = mdInline(selectedQuestion.explanation);
+    explanationEl.style.display = '';
+  } else if (letters != null) {
+    explanationEl.innerHTML = letters;
     explanationEl.style.display = '';
   } else {
     explanationEl.style.display = 'none';
@@ -427,7 +430,7 @@ function collapseActive() {
   if (item) {
     item.style.display = '';
     item.classList.remove('active-q');
-    item.focus();
+    item.focus({ preventScroll: true });
   }
   selectedQuestion = null;
   selectedIndex = -1;
