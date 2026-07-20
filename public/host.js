@@ -410,7 +410,7 @@ function selectQuestion(index) {
     explanationEl.innerHTML = mdInline(selectedQuestion.explanation);
     explanationEl.style.display = '';
   } else if (letters != null) {
-    explanationEl.innerHTML = letters;
+    explanationEl.innerHTML = `Correct: ${letters}`;
     explanationEl.style.display = '';
   } else {
     explanationEl.style.display = 'none';
