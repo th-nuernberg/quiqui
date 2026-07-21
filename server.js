@@ -92,11 +92,14 @@ setInterval(() => {
 }, Math.min(10000, Math.max(1000, SESSION_TIMEOUT_MS / 4))); // 10 s normally; faster when the timeout is shortened for tests
 
 // ─── Static files ─────────────────────────────────────────────────────────────
-// HTML documents are served with `Cache-Control: no-cache` so clients (in
-// particular iOS "Add to Home Screen" web clips, which cache aggressively)
-// must revalidate the document with the server before reusing it — otherwise a
-// new deploy is never picked up. JS/CSS/fonts keep normal ETag revalidation.
-const noCacheHtml = res => res.set('Cache-Control', 'no-cache');
+// Everything is served with `Cache-Control: no-cache` so clients must revalidate
+// with the server (via ETag) before reusing a cached copy — the browser still
+// stores files and gets fast 304s, but a new deploy or a local edit is picked up
+// immediately. This matters because QuiQui has no build step or hashed filenames,
+// and because some clients (iOS "Add to Home Screen" web clips) cache very
+// aggressively; without this a stale document or a stale style.css/host.js would
+// linger after an update.
+const noCache = res => res.set('Cache-Control', 'no-cache');
 
 // Under a reverse-proxy subpath the browser must resolve every relative asset
 // (style.css, socket.io, logo, …) against BASE_PATH, and client JS needs to know
@@ -119,7 +122,7 @@ const indexHtml       = renderHtml('index.html');
 const participantHtml = renderHtml('participant.html');
 const privacyHtml     = renderHtml('privacy.html');
 const projectorHtml   = renderHtml('projector.html');
-const sendHtml = (res, html) => noCacheHtml(res).type('html').send(html);
+const sendHtml = (res, html) => noCache(res).type('html').send(html);
 
 // Prefix-strip middleware: when the app is served under a proxy subpath that is
 // *not* stripped by the proxy (e.g. requests arrive as /quiqui/api/pull), rewrite
@@ -148,10 +151,24 @@ if (BASE_PATH) {
 
 app.get('/', (req, res) => sendHtml(res, indexHtml));
 
+// `no-cache` on every static asset — not just HTML. QuiQui has no build step or
+// hashed filenames, so a browser that heuristically caches style.css / host.js
+// would keep serving a stale copy after a deploy (and during local iteration).
+// `no-cache` means "always revalidate": the browser still stores the file but
+// re-checks the ETag each load, so an edit is picked up immediately while an
+// unchanged file returns a fast 304. Cheap for these small vanilla assets.
 app.use(express.static(path.join(__dirname, 'public'), {
-  setHeaders: (res, filePath) => { if (filePath.endsWith('.html')) noCacheHtml(res); },
+  setHeaders: (res) => noCache(res),
 }));
-app.use(express.json());
+// Default express.json() body limit is 100kb — the same order of magnitude as
+// FILE_SIZE_LIMIT_KB (also 100 KB by default), so a local upload just over the
+// limit would be rejected by this raw body-size check before /api/upload's own
+// FILE_SIZE_LIMIT_KB guard runs, surfacing Express's generic HTML 413 page
+// (with a stack trace) instead of our clean JSON error. Give the parser enough
+// headroom over the largest size guard we enforce ourselves (with margin for
+// JSON/base64 overhead around the raw text) so our own checks are always the
+// ones that fire.
+app.use(express.json({ limit: `${Math.max(FILE_SIZE_LIMIT_KB, REPO_SIZE_LIMIT_KB) * 2}kb` }));
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
@@ -217,6 +234,26 @@ function validateQuestions(questions, file) {
   return null;
 }
 
+// A questions YAML file comes in two shapes:
+//   1. classic — a bare top-level list of question objects
+//   2. bundled — a map { config: {...}, questions: [...] }, self-contained and
+//      also loadable as a single local upload. Inside a repo the `config:`
+//      section is illustrative and ignored (the repo's config.yaml leads); only
+//      on the /api/upload path is it honoured.
+// Returns { config, questions }. config is {} for the classic shape. Detection
+// is unambiguous: an array is classic; a map with a `questions` key is bundled;
+// anything else falls through with the raw value so validateQuestions rejects it
+// with its normal "must contain a non-empty list of questions" message.
+function normalizeQuestionFile(loaded) {
+  if (Array.isArray(loaded)) return { config: {}, questions: loaded };
+  if (loaded && typeof loaded === 'object' && 'questions' in loaded) {
+    const config = (loaded.config && typeof loaded.config === 'object' && !Array.isArray(loaded.config))
+      ? loaded.config : {};
+    return { config, questions: loaded.questions };
+  }
+  return { config: {}, questions: loaded };
+}
+
 // Normalise the correct field (array or single value) to 0-based answer indices.
 // Accepts e.g. ['A','b','C'], 'B', or a bare YAML letter that js-yaml parsed as a string.
 function toCorrectIndices(correct) {
@@ -267,6 +304,49 @@ function normaliseShortlink(raw) {
   const value = typeof raw === 'string' ? raw.trim() : '';
   if (!value) return null;
   return /^https?:\/\//i.test(value) ? value : `https://${value}`;
+}
+
+// Register a brand-new session or refresh an existing one for the same source.
+// Shared by /api/pull (repo) and /api/upload (local file). `existing` is
+// sessions.get(sessionId) computed by the caller (may be undefined). Emits
+// session-created to any waiting participants. Returns { sessionToken, shortlink }.
+function registerSession({ sessionId, repoUrl, questionsDir, config, ownerToken, existing }) {
+  const sessionToken = crypto.randomBytes(4).toString('hex'); // fresh on every (re)load
+  const shortlink = normaliseShortlink(config.host_shortlink ?? config.student_shortlink);
+  if (!existing) {
+    sessions.set(sessionId, {
+      sessionId,
+      sessionToken,
+      ownerToken: ownerToken || null,
+      repoUrl,
+      questionsDir,
+      activeQuestion: null,
+      title: config.title || null,
+      shortlink,
+      shuffle: config.shuffle === true,
+      votes: {},
+      voters: new Set(),
+      open: false,
+      answersRevealed: false,
+      lastActivity: Date.now(),
+    });
+    log.info(`Session '${sessionId}' started`);
+    log.info(`  source=${repoUrl}`);
+    io.to(`session:${sessionId}`).emit('session-created', { title: config.title || null, sessionToken, shortlink });
+  } else {
+    log.info(`Session '${sessionId}' refreshed`);
+    log.info(`  source=${repoUrl}`);
+    existing.sessionToken = sessionToken;
+    existing.ownerToken = ownerToken || existing.ownerToken;
+    existing.questionsDir = questionsDir;
+    existing.title = config.title || null;
+    existing.shortlink = shortlink;
+    existing.shuffle = config.shuffle === true;
+    existing.answersRevealed = false;
+    existing.lastActivity = Date.now();
+    io.to(`session:${sessionId}`).emit('session-created', { title: config.title || null, sessionToken, shortlink });
+  }
+  return { sessionToken, shortlink };
 }
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -505,7 +585,7 @@ app.get('/impressum', (req, res) => {
   </script>
 </body>
 </html>`;
-  noCacheHtml(res).send(html);
+  noCache(res).send(html);
 });
 
 app.get('/privacy', (req, res) => {
@@ -576,21 +656,19 @@ app.post('/api/pull', requireHost, async (req, res) => {
       });
     }
 
-    // Check for session_url conflict: another active session with the same ID from a different repo
+    // session_url is the room identity — it doesn't matter whether this pull
+    // comes from the same repo as whatever is already there or a completely
+    // different one. The only thing that matters is whether a poll is
+    // actually live right now: if the existing session is live (open or has
+    // an active question) and this pull comes from a browser we don't
+    // recognise (ownerToken mismatch), warn instead of silently clobbering
+    // it — two lecturers reusing the same session_url (same repo OR
+    // different ones) would otherwise stomp on each other's poll without any
+    // signal. A host reloading their own tab carries the same ownerToken and
+    // passes through. An idle session (or none at all) is always replaced
+    // silently, regardless of source. `force: true` lets the host UI confirm
+    // the takeover explicitly.
     const existing = sessions.get(sessionId);
-    if (existing && existing.repoUrl !== repo) {
-      return res.status(409).json({
-        error: `Session URL "${sessionId}" is already in use by a different repository. Change session_url in your config.yaml to something unique.`,
-      });
-    }
-
-    // Same repo, possibly a different lecturer: if the existing session is
-    // actually live (open or has an active question) and the pull comes from
-    // a browser we don't recognise (ownerToken mismatch), warn instead of
-    // silently taking it over — two lecturers reusing the same generic repo
-    // would otherwise clobber each other's poll without any signal. A host
-    // reloading their own tab carries the same ownerToken and passes through.
-    // `force: true` lets the host UI confirm the takeover explicitly.
     const isLive = existing && (existing.open || existing.activeQuestion);
     if (existing && isLive && existing.ownerToken && ownerToken !== existing.ownerToken && !force) {
       return res.status(409).json({
@@ -600,50 +678,15 @@ app.post('/api/pull', requireHost, async (req, res) => {
     }
 
     // Register or refresh the session entry (no active question yet)
-    const sessionToken = crypto.randomBytes(4).toString('hex'); // fresh on every pull
-    const shortlink = normaliseShortlink(config.host_shortlink ?? config.student_shortlink);
-    if (!existing) {
-      sessions.set(sessionId, {
-        sessionId,
-        sessionToken,
-        ownerToken: ownerToken || null,
-        repoUrl: repo,
-        questionsDir,
-        activeQuestion: null,
-        title: config.title || null,
-        shortlink,
-        shuffle: config.shuffle === true,
-        votes: {},
-        voters: new Set(),
-        open: false,
-        answersRevealed: false,
-        lastActivity: Date.now(),
-      });
-      log.info(`Session '${sessionId}' started`);
-      log.info(`  repo=${repo}`);
-      // Notify any participants already waiting at this URL
-      io.to(`session:${sessionId}`).emit('session-created', { title: config.title || null, sessionToken, shortlink });
-    } else {
-      log.info(`Session '${sessionId}' refreshed`);
-      log.info(`  repo=${repo}`);
-      // Same repo pulled again — new token clears prior participant submissions
-      existing.sessionToken = sessionToken;
-      existing.ownerToken = ownerToken || existing.ownerToken;
-      existing.questionsDir = questionsDir;
-      existing.title = config.title || null;
-      existing.shortlink = shortlink;
-      existing.shuffle = config.shuffle === true;
-      existing.answersRevealed = false;
-      existing.lastActivity = Date.now();
-      // Notify participants of the new token so their sessionStorage keys are invalidated
-      io.to(`session:${sessionId}`).emit('session-created', { title: config.title || null, sessionToken, shortlink });
-    }
+    const { shortlink } = registerSession({ sessionId, repoUrl: repo, questionsDir, config, ownerToken, existing });
 
-    // List .yaml / .yml files (excluding config.yaml)
+    // List .yaml / .yml files (excluding config.yaml). Sorted so the dropdown
+    // order is stable and predictable (lecture1, lecture2, …) rather than
+    // whatever order fs.readdir happens to return on this platform.
     const all = await fs.promises.readdir(questionsDir);
     const files = all.filter(f =>
       (f.endsWith('.yaml') || f.endsWith('.yml')) && f !== 'config.yaml' && f !== 'config.yml'
-    );
+    ).sort((a, b) => a.localeCompare(b));
 
     res.json({ files, config, sessionId, shortlink });
   } catch (err) {
@@ -654,6 +697,103 @@ app.post('/api/pull', requireHost, async (req, res) => {
       : 'Clone failed: ' + err.message;
     res.status(500).json({ error: msg });
   }
+});
+
+// Load questions from a self-contained local file uploaded by the host.
+// The client reads the file and POSTs its raw YAML text. We validate, split
+// config/questions, write it into a synthetic session directory (so every
+// downstream reader — /api/questions, /assets, expiry — is unchanged), and
+// register the session with a synthetic 'local:<hash>' repo identity so the
+// same-source vs different-source conflict logic works exactly as for repos.
+app.post('/api/upload', requireHost, async (req, res) => {
+  const { text, filename, ownerToken, force } = req.body;
+  if (typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({ error: 'No file content received.' });
+  }
+
+  // Size guard — same limit as a repo question file. Byte length, not char length.
+  const bytes = Buffer.byteLength(text, 'utf8');
+  if (bytes > FILE_SIZE_LIMIT_KB * 1024) {
+    return res.status(400).json({ error: `File is too large (${Math.round(bytes / 1024)} KB). Maximum allowed size is ${FILE_SIZE_LIMIT_KB} KB.` });
+  }
+
+  // Parse + split. A local file MUST be the bundled shape (map with config +
+  // questions); a bare list has no session_url so it can't start a session.
+  let loaded;
+  try {
+    loaded = yaml.load(text);
+  } catch (err) {
+    return res.status(400).json({ error: 'Failed to parse YAML: ' + err.message });
+  }
+  if (Array.isArray(loaded) || !loaded || typeof loaded !== 'object' || !('questions' in loaded)) {
+    return res.status(400).json({
+      error: 'This is not a self-contained QuiQui file. It must be a YAML map with a "config:" section (including session_url) and a "questions:" list. A bare list of questions can only be loaded from a GitHub repo (which supplies config.yaml).',
+    });
+  }
+  const { config, questions } = normalizeQuestionFile(loaded);
+
+  const label = typeof filename === 'string' && filename.trim() ? path.basename(filename) : 'uploaded file';
+  const validationError = validateQuestions(questions, label);
+  if (validationError) return res.status(400).json({ error: validationError });
+
+  // Derive sessionId from the file's own config — same rules as config.yaml.
+  const sessionId = config.session_url || crypto.randomBytes(3).toString('hex');
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(String(sessionId))) {
+    return res.status(400).json({
+      error: 'config.session_url must be 1–64 characters, letters/digits/hyphen/underscore only (no spaces or slashes).',
+    });
+  }
+
+  // The example file shipped in the companion questions repo uses this exact
+  // session_url. Warn (don't hard-block) so a host who copied it as a
+  // starting point notices before running a real session under the demo's
+  // room name — but still let them proceed if they really mean to (e.g.
+  // testing). Same confirm+force pattern as SESSION_LIKELY_TAKEN below.
+  if (sessionId === 'example' && !force) {
+    return res.status(409).json({
+      error: '"example" is the session_url of the shipped demo file — change it in your file\'s config section before using this for a real session. Confirm to use it anyway.',
+      code: 'EXAMPLE_SESSION_URL',
+    });
+  }
+
+  // Synthetic repo identity — content hash. Only used to detect an identical
+  // re-upload (a silent refresh); it is NOT used to gate the conflict check
+  // below, because session_url — not source — is the room identity: a
+  // different file claiming an in-use session_url is fine as long as no poll
+  // is actually live there right now (see registerSession()/isLive below,
+  // same rule as /api/pull).
+  const repoUrl = 'local:' + crypto.createHash('sha256').update(text).digest('hex').slice(0, 16);
+
+  const existing = sessions.get(sessionId);
+  const isLive = existing && (existing.open || existing.activeQuestion);
+  if (existing && isLive && existing.ownerToken && ownerToken !== existing.ownerToken && !force) {
+    return res.status(409).json({
+      error: `A session at "${sessionId}" already looks active, possibly started from another device. Confirm to take it over.`,
+      code: 'SESSION_LIKELY_TAKEN',
+    });
+  }
+
+  // Write the questions into a synthetic session directory named after the hash,
+  // so /api/questions can read it back exactly like a cloned repo file. We write
+  // ONLY the questions list (not the config) — /api/questions ignores config
+  // inside a "repo" anyway, and this keeps the on-disk file a plain classic file.
+  const dirName = repoDirName(repoUrl);      // 'local:abc…' → 'local-abc…', safe
+  const questionsDir = path.join(SESSIONS_DIR, dirName);
+  const storedName = 'questions.yaml';
+  try {
+    await fs.promises.rm(questionsDir, { recursive: true, force: true });
+    await fs.promises.mkdir(questionsDir, { recursive: true });
+    await fs.promises.writeFile(path.join(questionsDir, storedName), yaml.dump(questions), 'utf8');
+  } catch (err) {
+    log.error('Upload write failed:', err.message);
+    return res.status(500).json({ error: 'Could not store the uploaded file: ' + err.message });
+  }
+
+  const { shortlink } = registerSession({ sessionId, repoUrl, questionsDir, config, ownerToken, existing });
+
+  // Same response shape as /api/pull so the host UI reuses the same setup path.
+  // Exactly one file, already selected client-side.
+  res.json({ files: [storedName], config, sessionId, shortlink, storedName, uploadedName: label });
 });
 
 // Load questions from a specific file
@@ -675,7 +815,8 @@ app.get('/api/questions', requireHost, async (req, res) => {
     if (size > FILE_SIZE_LIMIT_KB * 1024) {
       return res.status(400).json({ error: `File is too large (${Math.round(size / 1024)} KB). Maximum allowed size is ${FILE_SIZE_LIMIT_KB} KB.` });
     }
-    const questions = yaml.load(fs.readFileSync(filePath, 'utf8'));
+    const loaded = yaml.load(fs.readFileSync(filePath, 'utf8'));
+    const { questions } = normalizeQuestionFile(loaded);   // config: section ignored inside a repo
     const validationError = validateQuestions(questions, safe);
     if (validationError) return res.status(400).json({ error: validationError });
     touchSession(sessionId);
