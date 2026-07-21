@@ -118,6 +118,15 @@ body {
   margin-bottom: 8px;
 }
 
+/* Section titles that sit above a card rather than inside it (e.g. "Load
+   questions" above #section-repo, "Questions" above #section-questions) —
+   same size/case as .section-label, but bold and in the stronger accent blue
+   so they read as titles rather than muted field labels. */
+.section-label--bold {
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
 .meta-line {
   font-size: 12px;
   color: var(--color-text-hint);
@@ -229,6 +238,87 @@ select:focus {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Local-file option — the primary/first way to load questions (lowest entry
+   barrier: grab the example file, edit, run). Sits at the top of the card. The
+   label grows so the From-file button lines up at the right edge, matching the
+   From-GitHub button's position and size in the row below. */
+.file-source-alt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The GitHub repo row is now the second option — separate it from the
+   file-source row above so the two read as distinct peers. */
+#repo-row {
+  margin-top: 10px;
+}
+.file-source-alt .section-label {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+/* The source buttons (From GitHub / From file / Replace file) sit in stacked
+   rows and read as one choice — give them the same width so they line up. */
+#btn-pull, #btn-choose-file, #btn-replace-file {
+  min-width: 148px;
+}
+
+/* Loaded-file name: a read-only input framed like the repo URL field, but with
+   a light-gray background to signal it can't be edited. Inherits the base
+   input[type="text"] box (border/height/radius/flex); only the state overrides
+   below distinguish it. */
+.local-file-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* readonly text inputs can keep native control chrome that masks a custom
+     background in some browsers (notably iOS Safari) unless appearance is
+     reset — belt-and-braces alongside the background override below. */
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--color-bg-tertiary) !important;   /* same gray as an already-visited question */
+  color: var(--color-text);
+  cursor: default;
+}
+.local-file-name:focus {
+  outline: none;
+  box-shadow: none;
+  border-color: var(--color-border-mid);
+}
+
+/* Muted text-button used for the two source switch links (repo ↔ local file). */
+.link-muted {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 6px;
+  color: var(--color-text-hint);
+  font-size: 12px;
+  font-family: var(--font);
+  cursor: pointer;
+  text-decoration: none;
+}
+.link-muted:hover { text-decoration: underline; }
+
+/* Row holding the pull/upload status text and the switch-source link, so the
+   link sits at the same vertical position as the status text instead of on
+   its own line below it. Only one of the two link-muted buttons is visible
+   at a time, so this degrades to "status left, link right" either way. */
+.status-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.status-row .meta-line,
+.status-row .link-muted {
+  margin-top: 8px;
 }
 
 /* Visually hidden but still focusable/readable by assistive tech and still a
@@ -709,12 +799,19 @@ select:focus {
     min-width: calc(50% - 4px);
   }
 
-  /* Repo input + pull button stack vertically */
-  .file-row {
+  /* Repo input + button, and the local source row, both wrap so the button
+     drops below its input/label rather than squeezing it on narrow screens. */
+  .file-row,
+  .file-source-alt {
     flex-wrap: wrap;
   }
   .file-row input[type="text"] {
     min-width: 0;
+  }
+  /* When wrapped, the button spans the full row instead of hugging its label. */
+  #btn-pull,
+  #btn-choose-file {
+    flex: 1 1 100%;
   }
 
   /* QR code row stacks on very small screens */

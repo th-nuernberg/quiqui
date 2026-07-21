@@ -21,14 +21,23 @@
     <main>
 
       <!-- Repo + file selection -->
+      <div class="section-label section-label--bold">Load questions</div>
       <section class="card" id="section-repo">
-        <div class="section-label">Select public GitHub repo with question files</div>
-        <div class="file-row">
-          <input type="text" id="repo-url" value="__DEFAULT_REPO_URL__" />
-          <button class="btn-primary" id="btn-pull" title="Download question files from repository, refresh at anytime.">
-            <span class="icon">↻</span> Load questions
+        <div class="file-source-alt" id="local-source-row">
+          <div class="section-label">Provided as a single question file with its own settings</div>
+          <button type="button" class="btn-primary" id="btn-choose-file" title="Load questions from a self-contained file on your computer.">
+            <span class="icon">⇧</span> From file
+          </button>
+          <input type="file" id="local-file-input" accept=".yaml,.yml" hidden />
+        </div>
+
+        <div class="file-row" id="repo-row">
+          <input type="text" id="repo-url" value="__DEFAULT_REPO_URL__" placeholder="https://github.com/owner/repo" title="A public GitHub repo with question files" />
+          <button class="btn-primary" id="btn-pull" title="Download question files from a public GitHub repository, refresh at any time.">
+            <span class="icon">↻</span> From GitHub
           </button>
         </div>
+
         <div class="file-row" id="file-row" style="margin-top: 10px; display:none;">
           <!-- Real <select>, kept as the source of truth for value/change (loadFile()
                listens to it unchanged) but visually hidden — see .sr-only. iOS/iPadOS
@@ -48,7 +57,15 @@
             <ul class="dropdown-menu" id="file-select-menu" role="listbox" tabindex="-1" hidden></ul>
           </div>
         </div>
-        <div class="meta-line" id="pull-status"></div>
+        <div class="file-row local-loaded" id="local-loaded-row" style="display:none;">
+          <input type="text" class="local-file-name" id="local-file-name" readonly tabindex="-1" aria-label="Loaded file" />
+          <button type="button" class="btn-primary" id="btn-replace-file">Replace file</button>
+        </div>
+        <div class="status-row">
+          <div class="meta-line" id="pull-status"></div>
+          <button type="button" class="link-muted" id="switch-to-file" style="display:none;">Load a file from your computer instead</button>
+          <button type="button" class="link-muted" id="switch-to-repo" style="display:none;">Use a GitHub repo instead</button>
+        </div>
 
         <!-- Join info — shown once a session is active -->
         <div id="join-info" style="display:none;">
@@ -71,7 +88,7 @@
 
       <!-- Question list -->
       <section id="section-questions" style="display:none;">
-        <div class="section-label">Questions</div>
+        <div class="section-label section-label--bold">Questions</div>
         <div class="question-list" id="question-list">
           <!-- populated by JS -->
         </div>

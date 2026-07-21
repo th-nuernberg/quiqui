@@ -74,7 +74,13 @@ const HOST_TOKEN = pathSegments[pathSegments.length - 1] || '';
 const OWNER_TOKEN_KEY = 'quiqui-owner-token';
 let OWNER_TOKEN = localStorage.getItem(OWNER_TOKEN_KEY);
 if (!OWNER_TOKEN) {
-  OWNER_TOKEN = crypto.randomUUID();
+  // crypto.randomUUID() only exists in a secure context (https:// or
+  // localhost) — on a plain http://<lan-ip-or-hostname> page (e.g. a host
+  // testing from a phone over LAN) `crypto.randomUUID` is undefined and
+  // throws, killing the rest of this script before any button listener is
+  // attached. This value is just a per-browser identity, not a security
+  // credential, so a non-cryptographic fallback is fine.
+  OWNER_TOKEN = Date.now().toString(36) + Math.random().toString(36).slice(2);
   localStorage.setItem(OWNER_TOKEN_KEY, OWNER_TOKEN);
 }
 
@@ -104,6 +110,15 @@ const btnNext          = document.getElementById('btn-next');
 const explanationEl    = document.getElementById('explanation');
 const statusBadge      = document.getElementById('status-badge');
 const connectionIndicator = document.getElementById('connection-indicator');
+const localSourceRow  = document.getElementById('local-source-row');
+const btnChooseFile   = document.getElementById('btn-choose-file');
+const localFileInput  = document.getElementById('local-file-input');
+const localLoadedRow  = document.getElementById('local-loaded-row');
+const localFileName   = document.getElementById('local-file-name');
+const btnReplaceFile  = document.getElementById('btn-replace-file');
+const switchToFile    = document.getElementById('switch-to-file');
+const switchToRepo    = document.getElementById('switch-to-repo');
+const repoRow         = document.getElementById('repo-row');
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 (function init() {
@@ -115,6 +130,12 @@ const connectionIndicator = document.getElementById('connection-indicator');
   repoInput.addEventListener('keydown', e => { if (e.key === 'Enter') pullRepo(); });
   fileSelect.addEventListener('change', loadFile);
   initFileDropdown();
+
+  btnChooseFile.addEventListener('click', () => localFileInput.click());
+  btnReplaceFile.addEventListener('click', () => localFileInput.click());
+  localFileInput.addEventListener('change', onLocalFileChosen);
+  switchToFile.addEventListener('click', showFileSource);   // reveal the Choose-file option
+  switchToRepo.addEventListener('click', showRepoSource);   // reveal the repo row again
 
   if (repo) {
     pullRepo();
@@ -199,6 +220,91 @@ function selectFile(value) {
   fileSelect.dispatchEvent(new Event('change'));
 }
 
+// ─── Shared post-load setup (repo pull and local upload both land here) ───────
+// Everything that doesn't depend on where the session came from: join info,
+// QR, title, and resetting question-list/selection state for the fresh load.
+// File-list display (dropdown vs. single filename) and the status message are
+// source-specific and stay in pullRepo()/uploadFile().
+function applyLoadedSession(data) {
+  // sessionId is always returned by the server (from config.session_url or random fallback)
+  currentSessionId = data.sessionId;
+  sessionExpired = false;
+  // Join the session room now — before any question is activated — so
+  // room-scoped server events (e.g. session-expired) reach this host even
+  // on a freshly-pulled session. Without this the host only joins on
+  // activate/reconnect and would miss an expiry of a not-yet-activated session.
+  socket.emit('join-session', { sessionId: currentSessionId });
+  const joinUrl = `${location.origin}${BASE_PATH}/join/${currentSessionId}`;
+  joinUrlEl.textContent = joinUrl;
+  joinUrlEl.href = joinUrl;
+  const projectorUrl = `${location.origin}${BASE_PATH}/view/${currentSessionId}`;
+  const projectorUrlEl = document.getElementById('projector-url');
+  projectorUrlEl.textContent = projectorUrl;
+  projectorUrlEl.href = projectorUrl;
+
+  // Optional lecturer-provided shortlink from config.yaml — display only,
+  // QuiQui does not resolve or validate where it points. The server normalises
+  // it (trim + scheme prefix) so the value here is ready to use.
+  setShortlink(data.shortlink);
+
+  joinInfo.style.display = '';
+  fetchQR(joinUrl);
+
+  if (data.config && data.config.title) {
+    currentTitle = data.config.title;
+    document.title = `QuiQui: ${currentTitle}`;
+  }
+
+  sectionQuestions.style.display = 'none';
+  parkActiveCard();
+  questionList.innerHTML = '';
+  selectedQuestion = null;
+  selectedIndex = -1;
+  revealedCorrectIndices = [];
+}
+
+// ─── Source view-state helpers ─────────────────────────────────────────────────
+// Repo loaded: show multi-file dropdown, offer switch-to-file link.
+function showRepoLoadedView() {
+  repoRow.style.display = '';   // ensure visible even if a prior file-source switch hid it
+  fileRow.style.display = '';
+  localLoadedRow.style.display = 'none';
+  localSourceRow.style.display = 'none';   // hide the blank-state Choose-file option
+  switchToFile.style.display = '';
+  switchToRepo.style.display = 'none';
+}
+
+// Local file loaded: show filename + Replace, collapse repo row to a link.
+function showLocalLoaded(name) {
+  fileRow.style.display = 'none';
+  localLoadedRow.style.display = '';
+  localFileName.value = name;   // #local-file-name is a read-only <input> (framed box)
+  localFileName.title = name;
+  repoRow.style.display = 'none';
+  localSourceRow.style.display = 'none';
+  switchToFile.style.display = 'none';
+  switchToRepo.style.display = '';
+}
+
+// Muted-link handlers — switch the visible source back to the other kind. The
+// user is choosing a different source, so the current source's loaded display is
+// collapsed and the other source's input revealed; the opposite muted link is
+// restored so neither source is ever stranded. The underlying session/questions
+// stay loaded until the new source is actually loaded.
+function showFileSource() {   // from a repo-loaded state, user wants a local file
+  fileRow.style.display = 'none';         // hide the multi-file dropdown
+  repoRow.style.display = 'none';         // hide the repo URL input + From GitHub button
+  localSourceRow.style.display = '';      // reveal the Choose-file option
+  switchToFile.style.display = 'none';
+  switchToRepo.style.display = '';        // offer the way back to the repo view
+}
+function showRepoSource() {    // from a local-loaded state, user wants a repo
+  localLoadedRow.style.display = 'none';  // hide the loaded-file name + Replace
+  repoRow.style.display = '';             // reveal the repo URL input
+  switchToRepo.style.display = 'none';
+  switchToFile.style.display = '';        // offer the way back to the file view
+}
+
 // ─── Repo pull ────────────────────────────────────────────────────────────────
 async function pullRepo(force = false) {
   const repo = repoInput.value.trim();
@@ -238,36 +344,9 @@ async function pullRepo(force = false) {
     fileSelectLabel.textContent = '— select a question file —';
     fileSelectLabel.title = '';
     renderFileDropdown();
-    fileRow.style.display = '';
 
-    // sessionId is always returned by the server (from config.session_url or random fallback)
-    currentSessionId = data.sessionId;
-    sessionExpired = false;
-    // Join the session room now — before any question is activated — so
-    // room-scoped server events (e.g. session-expired) reach this host even
-    // on a freshly-pulled session. Without this the host only joins on
-    // activate/reconnect and would miss an expiry of a not-yet-activated session.
-    socket.emit('join-session', { sessionId: currentSessionId });
-    const joinUrl = `${location.origin}${BASE_PATH}/join/${currentSessionId}`;
-    joinUrlEl.textContent = joinUrl;
-    joinUrlEl.href = joinUrl;
-    const projectorUrl = `${location.origin}${BASE_PATH}/view/${currentSessionId}`;
-    const projectorUrlEl = document.getElementById('projector-url');
-    projectorUrlEl.textContent = projectorUrl;
-    projectorUrlEl.href = projectorUrl;
-
-    // Optional lecturer-provided shortlink from config.yaml — display only,
-    // QuiQui does not resolve or validate where it points. The server normalises
-    // it (trim + scheme prefix) so the value here is ready to use.
-    setShortlink(data.shortlink);
-
-    joinInfo.style.display = '';
-    fetchQR(joinUrl);
-
-    if (data.config && data.config.title) {
-      currentTitle = data.config.title;
-      document.title = `QuiQui: ${currentTitle}`;
-    }
+    applyLoadedSession(data);
+    showRepoLoadedView();
 
     const url = new URL(window.location);
     url.searchParams.set('repo', repo);
@@ -280,17 +359,70 @@ async function pullRepo(force = false) {
     pullStatus.innerHTML = `Pulled ${data.files.length} file(s) from `
       + `<a href="${repoHref}" target="_blank" rel="noopener">${repoHref}</a>.`;
     btnPull.className = 'btn-light';
-    sectionQuestions.style.display = 'none';
-    parkActiveCard();
-    questionList.innerHTML = '';
-    selectedQuestion = null;
-    selectedIndex = -1;
-    revealedCorrectIndices = [];
   } catch (err) {
     setStatus('Error: ' + err.message, true);
   } finally {
     btnPull.disabled = false;
   }
+}
+
+// ─── Local file upload ──────────────────────────────────────────────────────────
+async function uploadFile(file, force = false) {
+  const text = await file.text();
+  setStatus('Loading file…');
+  try {
+    const res = await fetch(`${BASE_PATH}/api/upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Host-Token': HOST_TOKEN },
+      body: JSON.stringify({ text, filename: file.name, ownerToken: OWNER_TOKEN, force }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (data.code === 'SESSION_LIKELY_TAKEN') {
+        setStatus('Session may be in use elsewhere.', true);
+        if (confirm(`${data.error}\n\nEnter anyway? (Only do this if you're sure the other session isn't a colleague's live poll.)`)) {
+          return uploadFile(file, true);
+        }
+        return;
+      }
+      if (data.code === 'EXAMPLE_SESSION_URL') {
+        setStatus('This file still uses the demo session_url.', true);
+        if (confirm(`${data.error}`)) {
+          return uploadFile(file, true);
+        }
+        return;
+      }
+      throw new Error(data.error);
+    }
+
+    applyLoadedSession(data);              // shared join-info / session setup
+    showLocalLoaded(data.uploadedName || file.name);   // filename display + collapse repo row
+
+    // No status line needed — the filename is shown in its own field (see
+    // #local-loaded-row). Just clear any prior error/loading text.
+    pullStatus.classList.remove('meta-line--error');
+    pullStatus.textContent = '';
+
+    // A local upload has exactly one file, already stored — select it now to
+    // load the questions immediately (same as choosing it from the dropdown).
+    fileSelect.innerHTML = '';
+    const opt = document.createElement('option');
+    opt.value = data.storedName;
+    opt.textContent = data.storedName;
+    fileSelect.appendChild(opt);
+    fileSelect.value = data.storedName;
+    renderFileDropdown();   // keep the (hidden) custom dropdown in sync in case the host later switches to a repo
+    fileSelect.dispatchEvent(new Event('change'));   // → loadFile()
+  } catch (err) {
+    setStatus('Error: ' + err.message, true);
+  } finally {
+    localFileInput.value = '';   // allow re-choosing the same file
+  }
+}
+
+function onLocalFileChosen(e) {
+  const file = e.target.files && e.target.files[0];
+  if (file) uploadFile(file);
 }
 
 // ─── Load questions from selected file ────────────────────────────────────────

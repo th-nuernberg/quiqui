@@ -2,12 +2,9 @@
 
 # Live quiz & audience response tool for lectures, meetings, and talks — fully open-source, AI-ready, YAML questions in Git, no accounts, no database
 
-**QuiQui — short for *quick quiz* — is a free, self-hostable quiz tool where questions are plain YAML text in a Git repo. Write them yourself or hand a topic to ChatGPT or Claude. No cap on how many people can join.**
+**QuiQui — short for *quick quiz* — is a free, self-hostable quiz tool where your questions are plain YAML text you bring yourself: a single file from your computer, or a GitHub repo of many. Write them yourself or hand a topic to ChatGPT or Claude. No accounts, no database, no cap on how many people can join.**
 
-No host or participant sign-up. No app to install. No login. No admin panel to click through — **your questions are just YAML files in a GitHub repo**, so ChatGPT, Claude, or any AI assistant can draft a whole question file for you in one prompt — no vendor AI add-on required. Full Markdown, LaTeX math, code blocks, and images are supported out of the box.
-See [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiqui-questions) for example.
-
-You open a question for voting, participants scan a QR code and answer on their phones, and the whole room watches the results fill in on a live bar chart. Reveal the correct answer whenever you like — it lights up green for everyone at once.
+You open a question for voting, participants scan a QR code and answer on their phones, and the whole room watches the results fill in on a live bar chart. Reveal the correct answer whenever you like — it lights up green for everyone at once. No host or participant sign-up, no app to install, no admin panel to click through. Full Markdown, LaTeX math, code blocks, and images are supported out of the box.
 
 **→ [Try the hosted instance](https://kiz1.in.ohmportal.de/quiqui)** — no setup required  
 **→ [Quickstart for lecturers](QUICKSTART.md)** — your own quiz running in 5 minutes  
@@ -20,29 +17,18 @@ You open a question for voting, participants scan a QR code and answer on their 
 Commercial quiz and poll tools want an account, a subscription, your participants' data, and a lot of tedious clicking to create your questions. 
 QuiQui makes **live in-class polling as simple as possible.**
 
-**Everything is injected from your Git repo — the tool stores nothing.**
-Your questions *and* everything that defines a session — the join URL, the title, the correct answers, the explanations — are loaded from your GitHub repo. QuiQui itself keeps no database, no local files, no accounts: the repo is the single source of truth, and pointing QuiQui at it is all it takes for a session to appear. Nothing about your content or your identity lives inside the tool.
+Everything that defines a session — questions, join URL, title, correct answers, explanations — is *injected* from content you own. The tool itself stores nothing: no database, no accounts, no persistent state. You bring the questions; QuiQui just runs the room.
 
-**Your questions are plain text in Git.**
-Write questions as simple YAML in a public GitHub repo. Version them, diff them, copy them between courses, edit them in your favourite editor. No clunky web form, no vendor lock-in — pull the latest into a session anytime.
+What makes it different:
 
-**Write questions with AI, not a form.**
-Because questions are just text, drafting them isn't locked behind a paywalled "AI Quiz Generator" button. Paste our [ready-made prompt](https://github.com/th-nuernberg/quiqui-questions#generate-questions-with-an-ai-assistant) into any assistant you already use — ChatGPT, Claude, whatever — describe your topic, and paste the YAML it hands back straight into your repo. A whole lecture's worth of questions, generated and version-controlled in minutes.
-
-**Built for real teaching content.**
-Markdown, LaTeX math, code blocks, and images in questions *and* answers — the things a real lecture is made of, not just plain text. Single- and multiple-choice per question.
-
-**Zero friction for participants.**
-They scan a QR code (or type a short URL) and they're in. No login, no app, no email. Works on any phone with a browser.
-
-**Live results, host-paced.**
-You decide which question is live — participants can't skip ahead. The bar chart updates in real time as votes land, then you **reveal the correct answer** with one click and it turns green on every screen in the room.
-
-**A view for every screen.**
-A dedicated **projector view** shows the QR code and live results on the beamer, while you drive everything from the host view — complete with a live stopwatch so you know how long voting's been open.
-
-**Yours to run, free and private.**
-No database, no tracking, no scoring leaderboards. Session state lives in memory and vanishes when the quiz ends. 
+- **Your questions are plain text you own.** Write them as simple YAML — a single self-contained file on your computer, or a public GitHub repo of many files you can version, diff, and reuse across courses. Edit them in any editor; no clunky web form, no vendor lock-in.
+- **Two ways in, no account needed.** Load a file straight from your computer via **From file**, or point QuiQui at a GitHub repo. A repo additionally gives you a bookmarkable host URL that re-pulls your latest questions in one click.
+- **Write questions with AI, not a form.** Because questions are just text, drafting isn't locked behind a paywalled "AI Quiz Generator". Paste our [ready-made prompt](https://github.com/th-nuernberg/quiqui-questions#generate-questions-with-an-ai-assistant) into ChatGPT, Claude, or any assistant, describe your topic, and drop the YAML it returns straight in — a whole lecture's questions in minutes.
+- **Built for real teaching content.** Markdown, LaTeX math, code blocks, and images in questions *and* answers — single- or multiple-choice per question.
+- **Zero friction for participants.** They scan a QR code (or type a short URL) and they're in — no login, no app, no email, any phone with a browser. No cap on how many can join.
+- **Live results, host-paced.** You decide which question is live; participants can't skip ahead. The bar chart fills in real time, then you **reveal the correct answer** with one click and it turns green on every screen. A live stopwatch shows how long voting's been open.
+- **A view for every screen.** A dedicated **projector view** puts the QR code and live results on the beamer while you drive from the host view.
+- **Yours to run, free and private.** No tracking, no leaderboards. Session state lives in memory and vanishes when the quiz ends. Vanilla HTML/CSS/JS, no build step — deploy anywhere Node.js runs.
 
 ---
 
@@ -54,32 +40,9 @@ For self-hosting see [Installation](#installation) below.
 
 ---
 
-## Full feature list
-
-- **Everything injected from the repo** — questions *and* all session-defining data (join URL, title, correct answers, explanations) come from your GitHub repo on every pull; the tool holds no persistent state of its own — no database, no local files, no accounts. The repo is the single source of truth
-- **Host-paced** — the host controls which question is active; participants cannot browse ahead
-- **No participant login** — participants join by scanning a QR code or visiting a URL
-- **Live results** — bar chart updates in real time as participants submit
-- **Four-state flow** — Open → Pause (bars, no highlights) → Reveal (correct answers highlighted) → Close (participants return to waiting screen)
-- **Reveal answer** — host reveals correct answers; correct options are highlighted in green for everyone in the room
-- **Projector view** — read-only beamer view showing the QR code and live results, separate from the host controls
-- **Run timer** — while a question is active, the host view shows a live stopwatch counting up, so the host can see how long voting has been open
-- **Single and multiple choice** — per-question type configured in YAML
-- **Markdown and LaTeX** — question text and answers support code blocks, inline code, and math expressions
-- **Questions in Git** — question files are plain YAML in a public GitHub repo; versionable, diffable, reusable, no admin interface needed
-- **AI-assisted question writing** — a [ready-made prompt](https://github.com/th-nuernberg/quiqui-questions#generate-questions-with-an-ai-assistant) lets any LLM (ChatGPT, Claude, …) draft a whole question file in the correct YAML format; no built-in AI add-on to pay for or get locked into
-- **Optional shortlink** — a host-provided `host_shortlink` in `config.yaml` is shown in the host view and used in place of the long join URL on the projector, so participants can type a memorable address
-- **Multiple concurrent sessions** — each repo's `session_url` defines an independent session; the URL must be unique per host (e.g. `tum-python101`), as two sessions with the same `session_url` from different repos cannot coexist
-- **No database** — the only state is the live session, held in memory and intentionally ephemeral; it vanishes on restart or when the session ends
-- **No build step** — vanilla HTML/CSS/JS frontend, deploy anywhere Node.js runs
-
----
-
 ## Question format
 
-Questions live in a **public GitHub repository**, one `.yaml` file per session topic. See [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiqui-questions) for the full format reference and working examples.
-
-> **Limits:** QuiQui checks the repository size via the GitHub API before cloning and rejects repos larger than **1 MB**. Individual question files larger than **100 KB** are rejected when loaded. Each question may have at most **6 answer options**. YAML files are validated on load — format errors are shown as a clear error message in the host view.
+Questions are plain YAML, one `.yaml` file per session topic. See [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiqui-questions) for the full format reference and working examples. Load them either from a **public GitHub repo** or as a **self-contained file straight from your computer** (**From file** on the host page, no account needed — start from [`self-contained-example.yaml`](https://github.com/th-nuernberg/quiqui-questions/blob/main/self-contained-example.yaml)).
 
 ---
 
@@ -213,7 +176,7 @@ QuiQui uses a shared-secret approach suited for single-instance deployments:
 - **Only public GitHub repos** are accepted — `file://` and `ssh://` URLs are rejected; repo size is checked via the GitHub API before cloning
 - **Untrusted question content is sanitised** — question and answer text comes from a public GitHub repo (which the host may not control), so it is treated as untrusted. The client renders Markdown/LaTeX with `marked` + KaTeX and then runs the result through [DOMPurify](https://github.com/cure53/DOMPurify) before inserting it into the page, preventing stored XSS from a malicious repo. DOMPurify's default profile permits HTML, SVG, and MathML, so KaTeX's rendered math is preserved. This applies to the host, participant, and projector views alike.
 
-**Multiple hosts, one instance.** A single deployment safely supports many concurrent sessions — each is isolated by its `session_url` (see [Features](#full-feature-list)), so hosts never see or affect one another's questions, votes, or results. The one thing to know is that the host slug is a *single shared secret*: anyone who knows it can control any session on the instance. If your hosts should not be able to act on each other's sessions, give each their own deployment with its own `HOST_SLUG`.
+**Multiple hosts, one instance.** A single deployment safely supports many concurrent sessions — each is isolated by its `session_url`, so hosts never see or affect one another's questions, votes, or results. The one thing to know is that the host slug is a *single shared secret*: anyone who knows it can control any session on the instance. If your hosts should not be able to act on each other's sessions, give each their own deployment with its own `HOST_SLUG`.
 
 The slug is a shared secret, not real authentication — keep your instance behind HTTPS so it can't be read off the wire.
 

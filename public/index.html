@@ -7,9 +7,20 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="style.css" />
   <style>
+    /* Center the top-bar title on the landing page only (host/projector keep it
+       left-aligned). Scoped here in index.html's own <style>, so the shared
+       .top-bar-role rule in style.css is untouched. */
+    .top-bar-role {
+      text-align: center;
+    }
+    /* Invisible right-side logo copy that balances the real logo, so the
+       centered title is centred across the full width. */
+    .top-bar-spacer {
+      visibility: hidden;
+    }
     .hero {
       text-align: center;
-      padding: 3rem 1rem 2rem;
+      padding: 0.5rem 1rem 2rem;
     }
     .hero img {
       height: 48px;
@@ -102,17 +113,20 @@
   <div class="page-wrap">
     <header class="top-bar">
       <img src="quiqui-logo.png" alt="QuiQui" class="logo" />
+      <span class="top-bar-role">Live audience response for lectures, meetings, and talks</span>
+      <!-- Invisible logo copy: same width as the real logo, so the centered title
+           is centred against the page (and the button/text below), not offset by
+           the logo. Auto-matches the logo's width if it ever changes. -->
+      <img src="quiqui-logo.png" alt="" aria-hidden="true" class="logo top-bar-spacer" />
     </header>
 
     <main>
       <div class="hero">
-        <p class="hero-tagline">Live audience response for lectures, meetings, and talks</p>
         <p class="hero-sub">Pose a question, participants answer on their phones, the room sees live results — no login, no app install.</p>
         <a href="https://github.com/th-nuernberg/quiqui/blob/main/QUICKSTART.md" class="btn-primary btn-large" style="display:inline-block;text-decoration:none;">
           Quickstart for Lecturers →
         </a>
         <p class="hero-note">Are you a lecturer who wants to use this hosted instance?<br><a href="impressum#en">Ask for the URL</a> to start your own session.</p>
-        <p class="hero-note"><a href="https://github.com/new?template_owner=th-nuernberg&amp;template_name=quiqui-questions&amp;name=quiqui-questions&amp;description=My+QuiQui+questions&amp;visibility=public" target="_blank" rel="noopener">Create your own question repo →</a><br>One click on GitHub, no coding — just keep it public.</p>
       </div>
 
       <section class="card">
@@ -138,8 +152,8 @@
         <div class="features">
           <div class="feature"><strong>No participant login</strong>Scan a QR code or visit a URL — that's it.</div>
           <div class="feature"><strong>Live results</strong>Bar chart updates in real time as answers come in.</div>
-          <div class="feature"><strong>Questions in Git</strong>Edit a YAML file in GitHub, pull latest in the host view.</div>
-          <div class="feature"><strong>Markdown &amp; LaTeX</strong>Code blocks, inline code, and math expressions supported.</div>
+          <div class="feature"><strong>Questions live on your side</strong>Plain YAML — a single file from your computer, or a GitHub repo you pull from.</div>
+          <div class="feature"><strong>Markdown, LaTeX &amp; images</strong>Code blocks, inline code, math expressions, and images in questions and answers.</div>
           <div class="feature"><strong>No database</strong>All session state is in memory — nothing persists.</div>
           <div class="feature"><strong>Open source</strong>AGPL-3.0 — free to use, self-host, and modify.</div>
         </div>
