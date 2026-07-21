@@ -36,6 +36,8 @@ To change questions, edit the file and load it again with **Replace file**.
 
 ## When your deck grows: use a GitHub repo
 
+> **See it in action first.** On the host page, the repo URL is pre-filled with the example repo — just click **From GitHub** to load it. That deck is a guided tour of QuiQui *built in QuiQui*: its `lesson*.yaml` files demonstrate every feature (loading questions, formatting, images, self-hosting, …) by asking about it. Run through it once to get an overview before setting up your own.
+
 Once you run the same questions regularly, a **public GitHub repo** is worth the one-time setup. The payoff:
 
 - **Your host URL becomes bookmarkable.** Load a repo once and QuiQui puts the repo address in your browser's address bar (`…/<host-slug>?repo=https://github.com/you/quiqui-questions`). Bookmark that, and every future lecture is one click — the page opens *and* pulls your latest questions automatically. (A file can't do this — the browser can't re-supply a local file.)
