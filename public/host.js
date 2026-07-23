@@ -50,6 +50,7 @@ let currentState = 'inactive';
 let visitedIndices = new Set();
 let runStart = 0;        // Date.now() when the current active spell began
 let runTimer = null;     // setInterval handle for the live stopwatch
+let livePollTimer = null; // setInterval handle for the active-poll liveness backstop
 let runAccumulated = 0;  // ms of open time from prior active spells (before pauses),
                          // so re-opening a paused question resumes the elapsed count
                          // rather than restarting; reset to 0 when a new question is selected
@@ -647,6 +648,7 @@ function startStopwatch() {
   runStart = Date.now();         // begin a new active spell; runAccumulated holds prior ones
   renderStopwatch();
   runTimer = setInterval(renderStopwatch, 1000);
+  startLivenessPoll();
 }
 
 function stopStopwatch() {
@@ -656,6 +658,43 @@ function stopStopwatch() {
     // Fold the spell just ended into the accumulator so a later re-open resumes
     // from here. Paused time (between now and the next start) is not counted.
     runAccumulated += Date.now() - runStart;
+  }
+  stopLivenessPoll();
+}
+
+// Active-poll liveness backstop. A live poll bumps lastActivity server-side only
+// on host clicks and votes; a question left open with no votes goes idle and is
+// expired after SESSION_TIMEOUT_MINUTES (default 90). The expiry is announced by
+// a single room-scoped session-expired emit — if that one delivery is missed
+// (e.g. no reconnect happens to re-sync state), the host would tick a stopwatch
+// forever against a dead session with unresponsive buttons. This poll asks the
+// server whether the session still exists while a poll is live; a null session
+// means it's gone. ~30s cadence is far below the 90-min timeout, so at most one
+// stale tick slips through. Scoped to the stopwatch lifetime, so it's torn down
+// on every path that leaves the active panel (pause, reveal, close, pull, expiry).
+function startLivenessPoll() {
+  if (livePollTimer) return;
+  livePollTimer = setInterval(checkSessionAlive, 30000);
+}
+
+function stopLivenessPoll() {
+  if (livePollTimer) {
+    clearInterval(livePollTimer);
+    livePollTimer = null;
+  }
+}
+
+async function checkSessionAlive() {
+  if (!currentSessionId || sessionExpired) return;
+  try {
+    const res = await fetch(`${BASE_PATH}/api/session?sessionId=${encodeURIComponent(currentSessionId)}`, {
+      headers: { 'X-Host-Token': HOST_TOKEN },
+    });
+    if (!res.ok) return;                       // transient error — try again next tick
+    const data = await res.json();
+    if (data.session === null) handleSessionGone();
+  } catch {
+    // Network blip — leave the session alone and retry on the next tick.
   }
 }
 
@@ -804,12 +843,16 @@ socket.on('question-closed', () => {
   setState('closed');
 });
 
-socket.on('session-expired', ({ sessionId } = {}) => {
-  // Ignore expiries belonging to other concurrent sessions — this event is
-  // room-scoped, but guard on sessionId in case a stray/global emit arrives.
-  if (sessionId && sessionId !== currentSessionId) return;
+// Tear the host UI down to the "session gone" state. Shared by the room-scoped
+// session-expired emit, the reconnect-time session-state({exists:false}) reply,
+// and the active-poll backstop poll below — any one of them can be the first (or
+// only) signal that the server has expired the session, so all three funnel here.
+// Idempotent: guarded by sessionExpired so a second trigger is a no-op.
+function handleSessionGone() {
+  if (sessionExpired) return;
   sessionExpired = true;
   currentSessionId = null;
+  stopStopwatch();
   btnActivate.disabled = true;
   btnShowAnswer.disabled = true;
   btnClose.disabled = true;
@@ -820,6 +863,26 @@ socket.on('session-expired', ({ sessionId } = {}) => {
   selectedIndex = -1;
   statusBadge.style.display = 'none';
   setStatus('Session has expired. Pull the repo again to start a new session.', true);
+}
+
+socket.on('session-expired', ({ sessionId } = {}) => {
+  // Ignore expiries belonging to other concurrent sessions — this event is
+  // room-scoped, but guard on sessionId in case a stray/global emit arrives.
+  if (sessionId && sessionId !== currentSessionId) return;
+  handleSessionGone();
+});
+
+// Reconnect-after-expiry catch. If the host socket was briefly disconnected
+// (laptop sleep, Wi-Fi blip) exactly when the session expired, the room-scoped
+// session-expired emit never reached it. On reconnect the host re-joins its room
+// (see the 'connect' handler) and the server replies with session-state; when
+// that says the session no longer exists, we learn about the expiry here instead.
+socket.on('session-state', ({ exists } = {}) => {
+  // Only act on a reply for our own current session. exists:false means the
+  // server has no such session — it was expired while we were away. An idle host
+  // (currentSessionId null, or already torn down) has nothing to react to;
+  // handleSessionGone is itself idempotent via the sessionExpired guard.
+  if (exists === false && currentSessionId) handleSessionGone();
 });
 
 // ─── Bar chart ────────────────────────────────────────────────────────────────
