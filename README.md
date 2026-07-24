@@ -10,6 +10,14 @@
 
 ---
 
+<p align="center">
+  <img src="public/host-view.png" alt="QuiQui host view — a live question with a bar chart of responses" width="350" />
+  <br />
+  <em>The host view: open a question, watch responses come in live, reveal the answer.</em>
+</p>
+
+---
+
 ## Why QuiQui?
 
 Commercial quiz and poll tools want an account, a subscription, your participants' data, and a lot of tedious clicking to create your questions. 
