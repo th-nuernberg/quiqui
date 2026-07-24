@@ -4,10 +4,8 @@
 
 **QuiQui — short for *quick quiz* — is a free, self-hostable quiz tool where your questions are plain YAML text you bring yourself: a single file from your computer, or a GitHub repo of many. Write them yourself or hand a topic to ChatGPT or Claude. No accounts, no database, no cap on how many people can join.**
 
-You open a question for voting, participants scan a QR code and answer on their phones, and the whole room watches the results fill in on a live bar chart. Reveal the correct answer whenever you like — it lights up green for everyone at once. No host or participant sign-up, no app to install, no admin panel to click through. Full Markdown, LaTeX math, code blocks, and images are supported out of the box.
-
-**→ [Try the hosted instance](https://kiz1.in.ohmportal.de/quiqui)** — no setup required  
 **→ [Quickstart for lecturers](QUICKSTART.md)** — your own quiz running in 5 minutes  
+**→ [Try the hosted instance](https://kiz1.in.ohmportal.de/quiqui)** — no setup required  
 **→ [FAQ](FAQ.md)** — common questions answered
 
 ---
