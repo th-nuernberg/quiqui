@@ -90,9 +90,10 @@ socket.on('connect', () => {
 
 // Show the shortlink if the lecturer provided one, otherwise the full join URL.
 // The scheme (http/https) is dropped from whichever is shown — it's noise on a
-// projected URL nobody types. For the join URL a space is also inserted after the
-// domain so the line wraps cleanly there (host on line one, path below) instead
-// of breaking mid-domain; a shortlink is short and needs no forced break.
+// projected URL nobody types. For the join URL an explicit newline is inserted
+// right after the domain's first slash so the line breaks there (domain +
+// leading slash on line one, rest of the path below); the CSS (white-space:
+// pre-line) honours the "\n". A shortlink is short and needs no forced break.
 function setJoinDisplay(shortlink) {
   joinUrlEl.textContent = shortlink ? stripScheme(shortlink) : displayJoinUrl(joinUrl);
 }
@@ -104,9 +105,10 @@ function stripScheme(url) {
 function displayJoinUrl(url) {
   const noScheme = stripScheme(url);
   const slash = noScheme.indexOf('/');
-  // Space after the domain (before the first path slash) gives the wrap a break
-  // point; if there's no path, there's nothing to break and we show it as-is.
-  return slash === -1 ? noScheme : `${noScheme.slice(0, slash)} ${noScheme.slice(slash)}`;
+  // Break after the first slash: "host.example/" stays on line one, the rest of
+  // the path drops below. If there's no path there's nothing to break, so return
+  // it as-is.
+  return slash === -1 ? noScheme : `${noScheme.slice(0, slash + 1)}\n${noScheme.slice(slash + 1)}`;
 }
 
 function getSessionId() {

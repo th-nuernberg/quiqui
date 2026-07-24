@@ -81,7 +81,12 @@
   font-size: 12px;
   font-weight: 500;
   color: var(--color-accent);
-  word-break: break-all;
+  /* pre-line honours the explicit "\n" the JS inserts after the domain's first
+     slash, so the URL breaks there (domain on line one, path below) instead of
+     mid-domain. break-word still lets an over-long segment wrap as a fallback —
+     but never breaks a segment that fits, unlike the old break-all. */
+  white-space: pre-line;
+  overflow-wrap: break-word;
   line-height: 1.4;
 }
 
