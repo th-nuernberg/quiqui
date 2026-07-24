@@ -89,8 +89,24 @@ socket.on('connect', () => {
 });
 
 // Show the shortlink if the lecturer provided one, otherwise the full join URL.
+// The scheme (http/https) is dropped from whichever is shown — it's noise on a
+// projected URL nobody types. For the join URL a space is also inserted after the
+// domain so the line wraps cleanly there (host on line one, path below) instead
+// of breaking mid-domain; a shortlink is short and needs no forced break.
 function setJoinDisplay(shortlink) {
-  joinUrlEl.textContent = shortlink || joinUrl;
+  joinUrlEl.textContent = shortlink ? stripScheme(shortlink) : displayJoinUrl(joinUrl);
+}
+
+function stripScheme(url) {
+  return url.replace(/^https?:\/\//, '');
+}
+
+function displayJoinUrl(url) {
+  const noScheme = stripScheme(url);
+  const slash = noScheme.indexOf('/');
+  // Space after the domain (before the first path slash) gives the wrap a break
+  // point; if there's no path, there's nothing to break and we show it as-is.
+  return slash === -1 ? noScheme : `${noScheme.slice(0, slash)} ${noScheme.slice(slash)}`;
 }
 
 function getSessionId() {
