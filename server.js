@@ -500,8 +500,8 @@ app.get('/impressum', (req, res) => {
     <main>
       <section class="card">
         <nav class="lang-nav">
-          <a href="#de" id="btn-de" class="active" onclick="switchLang('de')">Deutsch</a>
-          <a href="#en" id="btn-en" onclick="switchLang('en')">English</a>
+          <a href="#de" id="btn-de" class="active" onclick="switchLang('de'); return false;">Deutsch</a>
+          <a href="#en" id="btn-en" onclick="switchLang('en'); return false;">English</a>
         </nav>
 
         <div class="legal-content active" id="lang-de">
