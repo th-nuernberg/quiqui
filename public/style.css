@@ -768,6 +768,25 @@ select:focus {
   font-size: 13px;
 }
 
+/* Blockquotes (Markdown ">") — accent bar, tinted background, italics */
+.active-question-text blockquote,
+.q-heading blockquote,
+.answer-opt blockquote {
+  margin: 0.75em 0;
+  padding: 6px 14px;
+  border-left: 4px solid var(--color-accent);
+  background: var(--color-accent-light);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  color: var(--color-accent-text);
+  font-style: italic;
+}
+.active-question-text blockquote p,
+.q-heading blockquote p,
+.answer-opt blockquote p { margin: 0; }
+.active-question-text blockquote p + p,
+.q-heading blockquote p + p,
+.answer-opt blockquote p + p { margin-top: 0.4em; }
+
 /* Wide display math ($$...$$) scrolls horizontally instead of overflowing
    the page on narrow (mobile) screens */
 .active-question-text .katex-display,
