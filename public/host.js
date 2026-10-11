@@ -913,11 +913,14 @@ function renderBarChart(answers, votes, total, correctIndices = []) {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-// Inline preview for the question list — collapses multiline, converts $$...$$ to $...$
+// Inline preview for the question list — collapses multiline, converts $$...$$ to $...$,
+// and replaces tables / images with short placeholders (they only look awkward when flattened)
 function previewQuestion(s) {
   return s
     .replace(/```[\s\S]*?```/gs, '')
-    .replace(/!\[([^\]]*)\]\([^)]*\)/g, (_, alt) => `[image: ${alt}]`)
+    .replace(/(^[ \t]*\|.*(?:\n|$))+/gm, '[Table]\n')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '[Image]')
+    .replace(/<img\b[^>]*>/gi, '[Image]')
     .replace(/\$\$([\s\S]*?)\$\$/gs, (_, m) => `$${m.replace(/\s+/g, ' ').trim()}$`)
     .replace(/\s+/g, ' ')
     .trim();
