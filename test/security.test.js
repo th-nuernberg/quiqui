@@ -203,6 +203,64 @@ async function run() {
     }
   }
 
+  // ── reveal_explanation: explanation reaches the room only on reveal, opt-in ─
+  // Uses a local upload, so no GitHub needed.
+  console.log('reveal_explanation opt-in');
+  {
+    const yamlText = [
+      'config:', '  session_url: revexp-test', '  reveal_explanation: true',
+      'questions:',
+      '  - question: "Inherits config"', '    type: single', '    answers: ["a", "b"]', '    correct: A', '    explanation: "SECRET-ONE"',
+      '  - question: "Opts out"', '    type: single', '    answers: ["a", "b"]', '    correct: B', '    explanation: "SECRET-TWO"', '    reveal_explanation: false',
+      '',
+    ].join('\n');
+    const up = await post('/api/upload', { text: yamlText, filename: 'revexp.yaml' });
+    if (up.status !== 200) { ok(false, `upload accepted (got ${up.status} ${JSON.stringify(up.json)})`); }
+    else {
+      const sid = up.json.sessionId;
+      const qres = await fetch(`${BASE}/api/questions?file=${encodeURIComponent(up.json.files[0])}&sessionId=${sid}`, { headers: { 'X-Host-Token': SLUG } });
+      const { questions } = await qres.json();
+      ok(questions[0].reveal_explanation === true, 'config.yaml default applies to a question without the flag');
+      ok(questions[1].reveal_explanation === false, 'per-question false overrides the config default');
+
+      const bad = await post('/api/upload', { text: yamlText.replace('reveal_explanation: false', 'reveal_explanation: "yes"'), filename: 'bad.yaml' });
+      ok(bad.status === 400, 'non-boolean reveal_explanation rejected (400)');
+
+      const room = sock(); await connected(room);
+      const seen = [];
+      room.on('question-activated', d => seen.push(['activated', d]));
+      room.on('answer-revealed', d => seen.push(['revealed', d]));
+      room.emit('join-session', { sessionId: sid });
+      const host = sock(); await connected(host);
+      host.emit('activate-question', { question: questions[0], sessionId: sid, token: SLUG, title: 't' });
+      await wait(200);
+      const act = seen.find(x => x[0] === 'activated')[1];
+      ok(!JSON.stringify(act).includes('SECRET-ONE') && !('reveal_explanation' in act.question), 'explanation not sent on activation');
+      const late1 = sock(); await connected(late1);
+      const st1 = new Promise(r => late1.once('session-state', r));
+      late1.emit('join-session', { sessionId: sid });
+      ok(!JSON.stringify(await st1).includes('SECRET-ONE'), 'late joiner before reveal gets no explanation');
+      host.emit('show-answer', { sessionId: sid, token: SLUG });
+      await wait(200);
+      const rev = seen.find(x => x[0] === 'revealed')[1];
+      ok(rev.explanation === 'SECRET-ONE', 'explanation included in answer-revealed when opted in');
+      const late2 = sock(); await connected(late2);
+      const st2 = new Promise(r => late2.once('session-state', r));
+      late2.emit('join-session', { sessionId: sid });
+      ok((await st2).explanation === 'SECRET-ONE', 'late joiner after reveal gets the explanation');
+
+      // Question that opted out: reveal carries no explanation
+      seen.length = 0;
+      host.emit('activate-question', { question: questions[1], sessionId: sid, token: SLUG, title: 't' });
+      await wait(150);
+      host.emit('show-answer', { sessionId: sid, token: SLUG });
+      await wait(200);
+      const rev2 = seen.find(x => x[0] === 'revealed')[1];
+      ok(rev2.explanation == null && !JSON.stringify(seen).includes('SECRET-TWO'), 'opted-out question never leaks its explanation');
+      [room, host, late1, late2].forEach(x => x.close());
+    }
+  }
+
   console.log(`\n${passed} passed, ${failed} failed, ${skipped} skipped`);
   return failed === 0;
 }

@@ -848,20 +848,59 @@ select:focus {
   }
 }
 
-/* Host explanation — block Markdown (paragraphs, tables, lists) */
-#explanation p { margin: 0; }
+/* Explanation text — host card and (opt-in) participant/projector reveal */
+#explanation p,
+.reveal-explanation p { margin: 0; }
 #explanation p + p,
 #explanation p + table,
-#explanation table + p { margin-top: 0.5em; }
-#explanation table {
+#explanation table + p,
+.reveal-explanation p + p,
+.reveal-explanation p + table,
+.reveal-explanation table + p { margin-top: 0.5em; }
+#explanation table,
+.reveal-explanation table {
   border-collapse: collapse;
   margin-top: 0.5em;
 }
 #explanation th,
-#explanation td {
-  border: 1px solid var(--color-border, #d8d8d4);
+#explanation td,
+.reveal-explanation th,
+.reveal-explanation td {
+  border: 1px solid var(--color-border);
   padding: 4px 10px;
   vertical-align: middle;
   text-align: left;
 }
-#explanation th { font-weight: 600; background: var(--color-accent-light); }
+#explanation th,
+.reveal-explanation th { font-weight: 600; background: var(--color-accent-light); }
+.reveal-explanation {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Participant explanation card (separate card below the question card) */
+.explanation-card {
+  scroll-snap-align: start;
+  scroll-margin-top: 12px;
+}
+html:has(.explanation-card) { scroll-snap-type: y proximity; }
+.explanation-card .reveal-explanation {
+  margin: 0;
+  padding: 0;
+  border-top: 0;
+}
+.table-scroll { overflow-x: auto; max-width: 100%; }
+.table-scroll table { margin-top: 0; }
+.explanation-cue {
+  display: block;
+  margin-top: 10px;
+  padding: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}

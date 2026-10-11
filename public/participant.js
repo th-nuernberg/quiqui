@@ -45,6 +45,10 @@ const questionText    = document.getElementById('participant-q-text');
 const answerList      = document.getElementById('participant-answer-list');
 const btnSubmit       = document.getElementById('btn-submit');
 const resultMeta      = document.getElementById('participant-result-meta');
+const revealExplanationEl = document.getElementById('reveal-explanation');
+const explanationCard = document.getElementById('explanation-card');
+const explanationCue  = document.getElementById('explanation-cue');
+let explanationObserver = null;
 // ─── Init ─────────────────────────────────────────────────────────────────────
 (function init() {
   const sessionId = getSessionId();
@@ -70,7 +74,7 @@ function getSessionId() {
 // ─── Socket events ────────────────────────────────────────────────────────────
 
 // Initial state when joining
-socket.on('session-state', ({ exists, question, open, title, answersRevealed, deactivated, correctIndices, sessionToken }) => {
+socket.on('session-state', ({ exists, question, open, title, answersRevealed, deactivated, correctIndices, explanation, sessionToken }) => {
   if (sessionToken) currentSessionToken = sessionToken;
   if (title) applyTitle(title);
   if (question && (open || deactivated || answersRevealed)) {
@@ -84,7 +88,11 @@ socket.on('session-state', ({ exists, question, open, title, answersRevealed, de
       resultMeta.style.display = '';
       resultMeta.textContent = 'Voting has ended.';
     }
-    if (answersRevealed) highlightCorrect(correctIndices);
+    if (answersRevealed) {
+      btnSubmit.style.display = 'none';   // nothing left to submit after reveal
+      highlightCorrect(correctIndices);
+      showRevealExplanation(explanation);
+    }
   } else {
     document.getElementById('waiting-msg').innerHTML = exists
       ? 'Waiting for the next question'
@@ -128,7 +136,7 @@ socket.on('question-deactivated', ({ votes, total }) => {
 });
 
 // Host revealed correct answers — highlight them, disable submit, show bars
-socket.on('answer-revealed', ({ correctIndices, votes, total }) => {
+socket.on('answer-revealed', ({ correctIndices, votes, total, explanation }) => {
   if (!currentQuestion) return;
   const hadSubmitted = submitted;
   submitted = true;
@@ -139,7 +147,9 @@ socket.on('answer-revealed', ({ correctIndices, votes, total }) => {
   resultMeta.textContent = hadSubmitted
     ? `${total} answer${total !== 1 ? 's' : ''} submitted`
     : 'Voting has ended.';
+  btnSubmit.style.display = 'none';     // nothing left to submit after reveal
   highlightCorrect(correctIndices);
+  showRevealExplanation(explanation);
 });
 
 // Host closed — return to waiting screen
@@ -179,6 +189,7 @@ function showQuestion(question) {
 
   currentQuestion = question;
   selected = [];
+  showRevealExplanation(null);
 
   typeHint.textContent = question.type === 'multiple' ? 'Select all that apply' : 'Select one answer';
   questionText.innerHTML = mdHtml(question.question);
@@ -203,6 +214,7 @@ function showQuestion(question) {
     answerList.appendChild(opt);
   });
 
+  btnSubmit.style.display = '';   // may have been hidden by a previous reveal
   btnSubmit.disabled = submitted; // keep disabled if already answered
   resultMeta.style.display = submitted ? '' : 'none';
   if (submitted) resultMeta.textContent = 'Answer already submitted.';
@@ -249,6 +261,42 @@ function submitAnswer() {
 }
 window.submitAnswer = submitAnswer;
 
+// ─── Explanation shown on reveal (question opted in via reveal_explanation) ───
+// Lives in its own card below the question card. A cue under the result line
+// points to it and scrolls there on tap; it hides itself once the card is in view.
+function showRevealExplanation(text) {
+  if (explanationObserver) { explanationObserver.disconnect(); explanationObserver = null; }
+  if (!text) {
+    revealExplanationEl.innerHTML = '';
+    explanationCard.style.display = 'none';
+    explanationCue.style.display = 'none';
+    return;
+  }
+  revealExplanationEl.innerHTML = mdHtml(text);
+  // Wide tables scroll inside the card instead of stretching the page.
+  revealExplanationEl.querySelectorAll('table').forEach(t => {
+    const wrap = document.createElement('div');
+    wrap.className = 'table-scroll';
+    t.parentNode.insertBefore(wrap, t);
+    wrap.appendChild(t);
+  });
+  explanationCard.style.display = '';
+  explanationCue.style.display = '';
+  explanationCue.style.visibility = '';
+  if ('IntersectionObserver' in window) {
+    explanationObserver = new IntersectionObserver(entries => {
+      // visibility (not display) so the layout above the card doesn't shift mid-scroll
+      explanationCue.style.visibility = entries[0].isIntersecting ? 'hidden' : '';
+    }, { threshold: 0.15 });
+    explanationObserver.observe(explanationCard);
+  }
+}
+
+explanationCue.addEventListener('click', () => {
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  explanationCard.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+});
+
 // ─── Correct answer highlight ─────────────────────────────────────────────────
 function highlightCorrect(correctIndices) {
   if (!correctIndices || !correctIndices.length) return;
@@ -283,6 +331,7 @@ function updateInlineBars(votes, total) {
 function showScreen(name) {
   screenWaiting.style.display  = name === 'waiting'  ? '' : 'none';
   screenQuestion.style.display = name === 'question' ? '' : 'none';
+  if (name !== 'question') showRevealExplanation(null);
 }
 
 // ─── Session storage — prevent re-submission on refresh ───────────────────────

@@ -39,6 +39,7 @@ const typeHint       = document.getElementById('type-hint');
 const questionText   = document.getElementById('proj-q-text');
 const answerList     = document.getElementById('proj-answer-list');
 const resultMeta     = document.getElementById('proj-result-meta');
+const revealExplanationEl = document.getElementById('reveal-explanation');
 const qrImg          = document.getElementById('proj-qr-img');
 const joinUrlEl      = document.getElementById('proj-join-url');
 const cardFit        = document.getElementById('proj-card-fit');
@@ -126,7 +127,7 @@ async function fetchQR(url) {
 
 // ─── Socket events ────────────────────────────────────────────────────────────
 
-socket.on('session-state', ({ exists, question, open, title, shortlink, answersRevealed, deactivated, correctIndices, votes, total }) => {
+socket.on('session-state', ({ exists, question, open, title, shortlink, answersRevealed, deactivated, correctIndices, explanation, votes, total }) => {
   if (title) applyTitle(title);
   setJoinDisplay(shortlink);
   if (question && (open || deactivated || answersRevealed)) {
@@ -143,6 +144,7 @@ socket.on('session-state', ({ exists, question, open, title, shortlink, answersR
       resultMeta.style.display = '';
       resultMeta.textContent = `${total} answer${total !== 1 ? 's' : ''} submitted`;
       highlightCorrect(correctIndices);
+      showRevealExplanation(explanation);
     }
   } else {
     document.getElementById('waiting-msg').textContent = exists
@@ -166,13 +168,14 @@ socket.on('question-deactivated', ({ votes, total }) => {
   resultMeta.textContent = 'Voting has ended.';
 });
 
-socket.on('answer-revealed', ({ correctIndices, votes, total }) => {
+socket.on('answer-revealed', ({ correctIndices, votes, total, explanation }) => {
   if (!currentQuestion) return;
   showInlineBars();
   updateInlineBars(votes, total);
   resultMeta.style.display = '';
   resultMeta.textContent = `${total} answer${total !== 1 ? 's' : ''} submitted`;
   highlightCorrect(correctIndices);
+  showRevealExplanation(explanation);
 });
 
 socket.on('question-closed', () => {
@@ -201,6 +204,7 @@ socket.on('session-created', ({ title, shortlink }) => {
 // ─── Show question ────────────────────────────────────────────────────────────
 function showQuestion(question) {
   currentQuestion = question;
+  showRevealExplanation(null);
 
   typeHint.textContent = question.type === 'multiple' ? 'Select all that apply' : 'Select one answer';
   questionText.innerHTML = mdHtml(question.question);
@@ -225,6 +229,19 @@ function showQuestion(question) {
   });
 
   showScreen('question');
+}
+
+// ─── Explanation shown on reveal (question opted in via reveal_explanation) ───
+function showRevealExplanation(text) {
+  if (!revealExplanationEl) return;
+  if (text) {
+    revealExplanationEl.innerHTML = mdHtml(text);
+    revealExplanationEl.style.display = '';
+  } else {
+    revealExplanationEl.innerHTML = '';
+    revealExplanationEl.style.display = 'none';
+  }
+  refit();
 }
 
 // ─── Correct answer highlight ─────────────────────────────────────────────────

@@ -78,7 +78,7 @@ const IMAGE_MIME = {
 
 // ─── In-memory session state ──────────────────────────────────────────────────
 // Map of sessionId → session object.
-// { sessionId, repoUrl, questionsDir, activeQuestion, title, shuffle, votes, voters, open, lastActivity }
+// { sessionId, repoUrl, questionsDir, activeQuestion, title, shuffle, revealExplanation, votes, voters, open, lastActivity }
 const sessions = new Map();
 
 // Single interval that reaps sessions idle for longer than SESSION_TIMEOUT_MS.
@@ -217,6 +217,9 @@ function validateQuestions(questions, file) {
     if (q.answers.some(a => typeof a !== 'string' || !a.trim()))
       return `${label}: every answer must be a non-empty string.`;
 
+    if (q.reveal_explanation !== undefined && typeof q.reveal_explanation !== 'boolean')
+      return `${label}: "reveal_explanation" must be true or false.`;
+
     // Validate correct field (optional — omit for generic/unscored questions)
     const letters = Array.isArray(q.correct) ? q.correct : (q.correct != null ? [q.correct] : []);
     if (letters.length === 0) continue;
@@ -291,6 +294,15 @@ function shuffleAnswers(q) {
   return { ...q, answers, correct };
 }
 
+// The host's `explanation` is host-only unless the question opted in with
+// `reveal_explanation: true`; then it is sent to the room, but only once the
+// answer has been revealed. Returns the text to broadcast, or null.
+function publicExplanation(question) {
+  return question && question.reveal_explanation === true && typeof question.explanation === 'string' && question.explanation.trim()
+    ? question.explanation
+    : null;
+}
+
 function touchSession(sessionId) {
   const s = sessions.get(sessionId);
   if (s) s.lastActivity = Date.now();
@@ -324,6 +336,7 @@ function registerSession({ sessionId, repoUrl, questionsDir, config, ownerToken,
       title: config.title || null,
       shortlink,
       shuffle: config.shuffle === true,
+      revealExplanation: config.reveal_explanation === true,
       votes: {},
       voters: new Set(),
       open: false,
@@ -342,6 +355,7 @@ function registerSession({ sessionId, repoUrl, questionsDir, config, ownerToken,
     existing.title = config.title || null;
     existing.shortlink = shortlink;
     existing.shuffle = config.shuffle === true;
+    existing.revealExplanation = config.reveal_explanation === true;
     existing.answersRevealed = false;
     existing.lastActivity = Date.now();
     io.to(`session:${sessionId}`).emit('session-created', { title: config.title || null, sessionToken, shortlink });
@@ -825,7 +839,13 @@ app.get('/api/questions', requireHost, async (req, res) => {
     const shuffled = questions.map(q =>
       (s.shuffle && q.shuffle !== false) ? shuffleAnswers(q) : q
     );
-    res.json({ questions: shuffled });
+    // Resolve reveal_explanation once (per-question value wins, else the
+    // config.yaml default) so the host sends a definite boolean on activation.
+    const resolved = shuffled.map(q => ({
+      ...q,
+      reveal_explanation: typeof q.reveal_explanation === 'boolean' ? q.reveal_explanation : s.revealExplanation,
+    }));
+    res.json({ questions: resolved });
   } catch (err) {
     res.status(500).json({ error: 'Failed to parse YAML: ' + err.message });
   }
@@ -915,7 +935,7 @@ io.on('connection', (socket) => {
 
     const s = sessions.get(sessionId);
     if (s && s.activeQuestion) {
-      const { correct, explanation, ...participantQuestion } = s.activeQuestion;
+      const { correct, explanation, reveal_explanation, ...participantQuestion } = s.activeQuestion;
       const correctIndices = s.answersRevealed ? toCorrectIndices(s.activeQuestion.correct) : [];
       socket.emit('session-state', {
         exists: true,
@@ -928,6 +948,7 @@ io.on('connection', (socket) => {
         answersRevealed: s.answersRevealed,
         deactivated: !s.open && !s.answersRevealed,
         correctIndices,
+        explanation: s.answersRevealed ? publicExplanation(s.activeQuestion) : null,
         sessionToken: s.sessionToken,
       });
     } else {
@@ -957,7 +978,7 @@ io.on('connection', (socket) => {
     s.activeQuestion = question;
 
     // Strip host-only fields before broadcasting to participants
-    const { correct, explanation, ...participantQuestion } = question;
+    const { correct, explanation, reveal_explanation, ...participantQuestion } = question;
     io.to(`session:${sessionId}`).emit('question-activated', { question: participantQuestion, sessionId, title: s.title, votes: s.votes, total: s.voters.size, sessionToken: s.sessionToken });
   });
 
@@ -981,7 +1002,7 @@ io.on('connection', (socket) => {
     s.answersRevealed = true;
     touchSession(sessionId);
     const correctIndices = toCorrectIndices(s.activeQuestion.correct);
-    io.to(`session:${sessionId}`).emit('answer-revealed', { correctIndices, votes: s.votes, total: s.voters.size });
+    io.to(`session:${sessionId}`).emit('answer-revealed', { correctIndices, votes: s.votes, total: s.voters.size, explanation: publicExplanation(s.activeQuestion) });
   });
 
   // Host closes — participants sent to waiting screen, question cleared

@@ -545,6 +545,9 @@ function selectQuestion(index) {
         ? `<p>${letters}: ${html.slice(3)}`
         : `<p>${letters}:</p>${html}`;
     }
+    if (selectedQuestion.reveal_explanation === true) {
+      html += '<p><em>Shown to participants on Reveal.</em></p>';
+    }
     explanationEl.innerHTML = html;
     explanationEl.style.display = '';
   } else if (letters != null) {
@@ -918,16 +921,20 @@ function renderBarChart(answers, votes, total, correctIndices = []) {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-// Inline preview for the question list — collapses multiline, converts $$...$$ to $...$,
-// and replaces tables / images with short placeholders (they only look awkward when flattened)
+// Inline preview for the question list — drops code blocks, tables and images
+// entirely (they look awkward flattened), converts $$...$$ to $...$, and keeps
+// paragraph breaks / <br> as line breaks while collapsing other whitespace.
 function previewQuestion(s) {
   return s
-    .replace(/```[\s\S]*?```/gs, '')
-    .replace(/(^[ \t]*\|.*(?:\n|$))+/gm, '[Table]\n')
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, '[Image]')
-    .replace(/<img\b[^>]*>/gi, '[Image]')
-    .replace(/\$\$([\s\S]*?)\$\$/gs, (_, m) => `$${m.replace(/\s+/g, ' ').trim()}$`)
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/(^[ \t]*\|.*(?:\n|$))+/gm, '\n\n')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/<img\b[^>]*>/gi, '')
+    .replace(/\$\$([\s\S]*?)\$\$/g, (_, m) => `$${m.replace(/\s+/g, ' ').trim()}$`)
+    .replace(/\n[ \t]*\n\s*/g, '<br>')             // paragraph break → line break
     .replace(/\s+/g, ' ')
+    .replace(/(\s*<br\s*\/?>\s*)+/gi, '<br>')      // runs of breaks (e.g. left by removed images) → one
+    .replace(/^(\s*<br>)+|(<br>\s*)+$/g, '')        // none at the very start / end
     .trim();
 }
 
