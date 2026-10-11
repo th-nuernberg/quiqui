@@ -63,6 +63,7 @@ Questions are written in YAML — whether in a single file or a repo, the format
 Two things to decide before you write questions:
 
 - **Scored or generic?** Include a `correct` field and the **✓ Reveal** button highlights the right option(s) in green for the room. Omit it to keep the question text in your slides and just collect votes — Reveal is hidden, and answers show as letter badges (A, B, C, …). The ready-made [`lesson5-generic-templates.yaml`](https://github.com/th-nuernberg/quiqui-questions/blob/main/lesson5-generic-templates.yaml) has A/B/C/D, Yes/No, True/False, and agreement-scale templates for this mode. (There is no separate "true/false" question type — a true/false or yes/no question is just a single-choice question with two answers.)
+- **Explanation for the room?** A question's `explanation` is a hint for you, the host, by default. Add `reveal_explanation: true` to a question — or once in `config.yaml` / the file's `config:` block for every question — and the explanation also appears on the participants' phones and on the projector after **✓ Reveal**. It renders full Markdown, so tables, images and lists work (handy for a signal chart or a worked solution). The first question of [`lesson1-about-quiqui.yaml`](https://github.com/th-nuernberg/quiqui-questions/blob/main/lesson1-about-quiqui.yaml) ends with a live example.
 - **Where to start?** [`self-contained-example.yaml`](https://github.com/th-nuernberg/quiqui-questions/blob/main/self-contained-example.yaml) shows scored single- and multiple-choice questions, plus Markdown, LaTeX maths, and a code block — a good starting point whether you go the file or the repo route.
 
 To change questions later: with a file, edit and load it again (**Replace file**); with a repo, edit on GitHub and click **Pull latest** — no server restart needed either way.
@@ -98,7 +99,7 @@ To change questions later: with a file, edit and load it again (**Replace file**
 Participants visit the join URL or scan the QR code — no login, no app install. They see "Waiting for the next question" until you open a question. After submitting their answer (only once per question), the result bars appear live under each answer option.
 
 - **Pause** — participants see the bars without correct answer highlights
-- **Reveal** — correct answers highlighted in green for everyone
+- **Reveal** — correct answers highlighted in green for everyone; if the question has `reveal_explanation: true`, its explanation appears in a separate card below (a small "Explanation below ↓" link jumps there on a phone)
 - **Close** — participants return to the waiting screen
 
 If a participant hasn't voted when you pause or reveal, they see "Voting has ended." and the bars — but cannot submit. If a participant refreshes after submitting, they see the question with bars but cannot submit again.

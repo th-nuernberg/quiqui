@@ -32,7 +32,7 @@ What makes it different:
 - **Write questions with AI, not a form.** Because questions are just text, drafting isn't locked behind a paywalled "AI Quiz Generator". Paste our [ready-made prompt](https://github.com/th-nuernberg/quiqui-questions#generate-questions-with-an-ai-assistant) into ChatGPT, Claude, or any assistant, describe your topic, and drop the YAML it returns straight in — a whole lecture's questions in minutes.
 - **Built for real teaching content.** Markdown, LaTeX math, code blocks, and images in questions *and* answers — single- or multiple-choice per question.
 - **Zero friction for participants.** They scan a QR code (or type a short URL) and they're in — no login, no app, no email, any phone with a browser. No cap on how many can join.
-- **Live results, host-paced.** You decide which question is live; participants can't skip ahead. The bar chart fills in real time, then you **reveal the correct answer** with one click and it turns green on every screen. A live stopwatch shows how long voting's been open.
+- **Live results, host-paced.** You decide which question is live; participants can't skip ahead. The bar chart fills in real time, then you **reveal the correct answer** with one click and it turns green on every screen — optionally with a detailed explanation (tables and images included) for the room. A live stopwatch shows how long voting's been open.
 - **A view for every screen.** A dedicated **projector view** puts the QR code and live results on the beamer while you drive from the host view.
 - **Yours to run, free and private.** No tracking, no leaderboards. Session state lives in memory and vanishes when the quiz ends. Vanilla HTML/CSS/JS, no build step — deploy anywhere Node.js runs.
 

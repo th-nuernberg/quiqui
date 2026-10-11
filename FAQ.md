@@ -49,6 +49,12 @@ Images render on the participant, projector, and host views alike. Keep them sli
 
 ---
 
+### Can I show a detailed explanation to participants after the reveal?
+
+Yes. Every question can carry an `explanation`, which is a hint for the host by default. Set `reveal_explanation: true` on a question — or once in `config.yaml` (or the `config:` block of a self-contained file) to apply it to all questions — and the explanation is shown to participants and on the projector once you press **✓ Reveal**. It is never sent before the reveal, and a question can opt out with `reveal_explanation: false`. The text supports full Markdown, including tables and images, so a sailing-signal chart or a worked solution works well.
+
+---
+
 ### Can I just use the example question repo, or do I need my own?
 
 You can use [th-nuernberg/quiqui-questions](https://github.com/th-nuernberg/quiqui-questions) directly to try QuiQui out, but it's shared by everyone doing the same thing — if someone else runs a live poll from it at the same time, you'll land in the same session and see each other's votes. QuiQui warns you before this happens ("session may be in use elsewhere") so you don't clobber a colleague's poll by accident, but for a real lecture you want your own questions. Two easy ways: download the [`self-contained-example.yaml`](https://github.com/th-nuernberg/quiqui-questions/blob/main/self-contained-example.yaml) file, edit it, and load it with **From file** — or fork your own copy of the repo (a GitHub click, no coding involved). See [Creating your own question repo](QUICKSTART.md#creating-your-own-question-repo) in the Quickstart.
