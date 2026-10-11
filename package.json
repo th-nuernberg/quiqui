@@ -14,15 +14,20 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "js-yaml": "^4.1.0",
-    "katex": "^0.17.0",
+    "katex": "^0.19.0",
     "marked": "^18.0.4",
     "marked-katex-extension": "^5.1.10",
     "qrcode": "^1.5.4",
-    "simple-git": "^3.25.0",
+    "simple-git": "^4.0.2",
     "socket.io": "^4.7.5"
   },
   "devDependencies": {
     "playwright": "^1.61.1",
     "socket.io-client": "^4.8.3"
+  },
+  "overrides": {
+    "marked-katex-extension": {
+      "katex": "$katex"
+    }
   }
 }

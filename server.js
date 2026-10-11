@@ -8,7 +8,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const crypto = require('crypto'); // used for random session ID fallback
 const yaml = require('js-yaml');
-const simpleGit = require('simple-git');
+const { simpleGit } = require('simple-git');
 const QRCode = require('qrcode');
 
 // Reverse-proxy path prefix the app is served under, e.g. "/quiqui". Empty means
