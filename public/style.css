@@ -847,3 +847,21 @@ select:focus {
     gap: 8px;
   }
 }
+
+/* Host explanation — block Markdown (paragraphs, tables, lists) */
+#explanation p { margin: 0; }
+#explanation p + p,
+#explanation p + table,
+#explanation table + p { margin-top: 0.5em; }
+#explanation table {
+  border-collapse: collapse;
+  margin-top: 0.5em;
+}
+#explanation th,
+#explanation td {
+  border: 1px solid var(--color-border, #d8d8d4);
+  padding: 4px 10px;
+  vertical-align: middle;
+  text-align: left;
+}
+#explanation th { font-weight: 600; background: var(--color-accent-light); }

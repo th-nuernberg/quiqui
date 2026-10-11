@@ -536,11 +536,16 @@ function selectQuestion(index) {
     ? (Array.isArray(correct) ? correct : [correct]).map(l => String(l).trim()[0].toUpperCase()).join(', ')
     : null;
 
-  if (letters != null && selectedQuestion.explanation) {
-    explanationEl.innerHTML = `${letters}: ${mdInline(selectedQuestion.explanation)}`;
-    explanationEl.style.display = '';
-  } else if (selectedQuestion.explanation) {
-    explanationEl.innerHTML = mdInline(selectedQuestion.explanation);
+  if (selectedQuestion.explanation) {
+    // Block-level Markdown (tables, lists, multiple paragraphs); the correct
+    // letter(s) go inside the first paragraph so the prefix stays inline.
+    let html = mdHtml(selectedQuestion.explanation);
+    if (letters != null) {
+      html = html.startsWith('<p>')
+        ? `<p>${letters}: ${html.slice(3)}`
+        : `<p>${letters}:</p>${html}`;
+    }
+    explanationEl.innerHTML = html;
     explanationEl.style.display = '';
   } else if (letters != null) {
     explanationEl.innerHTML = `Correct: ${letters}`;
