@@ -904,3 +904,21 @@ html:has(.explanation-card) { scroll-snap-type: y proximity; }
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* Lists in rendered Markdown — the global reset zeroes `padding`, which would
+   leave bullets/numbers hanging outside the text column. */
+.active-question-text ul, .active-question-text ol,
+.q-heading ul, .q-heading ol,
+.answer-opt ul, .answer-opt ol,
+#explanation ul, #explanation ol,
+.reveal-explanation ul, .reveal-explanation ol {
+  padding-left: 1.5em;
+  margin: 0.4em 0;
+}
+.active-question-text li > p, .q-heading li > p,
+.answer-opt li > p, #explanation li > p, .reveal-explanation li > p { margin: 0; }
+.active-question-text ul ul, .active-question-text ol ol,
+.q-heading ul ul, .q-heading ol ol,
+.answer-opt ul ul, .answer-opt ol ol,
+#explanation ul ul, #explanation ol ol,
+.reveal-explanation ul ul, .reveal-explanation ol ol { margin: 0.2em 0; }
