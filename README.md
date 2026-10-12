@@ -52,6 +52,19 @@ Questions are plain YAML, one `.yaml` file per session topic. See [th-nuernberg/
 
 ---
 
+## Question types
+
+| `type` | Participants… | Result view |
+|---|---|---|
+| `single` | pick one answer | one bar per answer |
+| `multiple` | pick any number of answers | one bar per answer |
+| `matching` | assign a value to every line, e.g. capitals to countries (dropdown in the sentence) | one stacked bar per line |
+| `ranking` | give every item its own rank; scored, or an opinion poll with no right answer | one stacked bar per item, sorted by average rank when unscored |
+
+Syntax and examples for every type are in the [quiqui-questions README](https://github.com/th-nuernberg/quiqui-questions#question-format).
+
+---
+
 ## Installation
 
 > **Lecturer?** See the [Quickstart guide](QUICKSTART.md) for a step-by-step walkthrough with screenshots.
