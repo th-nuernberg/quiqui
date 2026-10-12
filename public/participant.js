@@ -36,6 +36,7 @@ let currentQuestion = null;
 let selected = [];       // indices of selected answer(s)
 let submitted = false;
 let currentSessionToken = null;
+let matchView = null;    // QQ view for matching/ranking questions (see matching.js)
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const screenWaiting   = document.getElementById('screen-waiting');
@@ -109,6 +110,7 @@ socket.on('question-activated', ({ question, votes, total, title, sessionToken }
     submitted = false;
     selected = [];
     sessionStorage.removeItem(answerKey(question.question));
+    sessionStorage.removeItem(`${answerKey(question.question)}:picks`);
   }
   showQuestion(question);
   if (sameQuestion && submitted && votes) {
@@ -191,8 +193,33 @@ function showQuestion(question) {
   selected = [];
   showRevealExplanation(null);
 
-  typeHint.textContent = question.type === 'multiple' ? 'Select all that apply' : 'Select one answer';
   questionText.innerHTML = mdHtml(question.question);
+  matchView = null;
+
+  if (QQ.isAssignment(question)) {
+    typeHint.textContent = question.type === 'ranking'
+      ? 'Give every item its own rank (1 = first)'
+      : 'Choose a value for every line';
+    matchView = QQ.create(answerList, question, {
+      mode: 'participant',
+      md: mdInline,
+      onChange: (_, complete) => { btnSubmit.disabled = submitted || !complete; },
+    });
+    if (submitted) {
+      const stored = loadPicks(question.question);
+      if (stored) matchView.setPicks(stored);
+      matchView.lock();
+    }
+    btnSubmit.style.display = '';
+    btnSubmit.disabled = submitted || !matchView.complete();
+    resultMeta.style.display = submitted ? '' : 'none';
+    if (submitted) resultMeta.textContent = 'Answer already submitted.';
+    showScreen('question');
+    if (submitted) showInlineBars();
+    return;
+  }
+
+  typeHint.textContent = question.type === 'multiple' ? 'Select all that apply' : 'Select one answer';
 
   answerList.innerHTML = '';
   const keys = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -246,12 +273,15 @@ function toggleAnswer(index, el, type) {
 
 // ─── Submit answer ────────────────────────────────────────────────────────────
 function submitAnswer() {
-  if (submitted || selected.length === 0 || !currentQuestion) return;
+  if (matchView) selected = matchView.picks();   // one choice index per item
+  if (submitted || !currentQuestion) return;
+  if (matchView ? !matchView.complete() : selected.length === 0) return;
   submitted = true;
   btnSubmit.disabled = true;
 
   const sessionId = getSessionId();
   markAnswered(currentQuestion.question);
+  if (matchView) savePicks(currentQuestion.question, selected);
   socket.emit('submit-answer', { sessionId, selected, voterId: getVoterId() });
 
   // Reveal bars immediately — they start at 0% and animate in on first vote-update
@@ -300,6 +330,7 @@ explanationCue.addEventListener('click', () => {
 // ─── Correct answer highlight ─────────────────────────────────────────────────
 function highlightCorrect(correctIndices) {
   if (!correctIndices || !correctIndices.length) return;
+  if (matchView) { matchView.reveal(correctIndices); return; }
   document.querySelectorAll('.answer-opt').forEach(el => {
     const idx = parseInt(el.dataset.index, 10);
     if (correctIndices.includes(idx)) el.classList.add('answer-correct');
@@ -309,6 +340,7 @@ function highlightCorrect(correctIndices) {
 // ─── Inline bar chart ─────────────────────────────────────────────────────────
 function showInlineBars() {
   if (!currentQuestion) return;
+  if (matchView) { matchView.lock(); matchView.showBars(); return; }
   currentQuestion.answers.forEach((_, i) => {
     document.getElementById(`opt-bar-wrap-${i}`)?.classList.add('visible');
     document.getElementById(`opt-bar-pct-${i}`)?.classList.add('visible');
@@ -317,6 +349,7 @@ function showInlineBars() {
 
 function updateInlineBars(votes, total) {
   if (!currentQuestion) return;
+  if (matchView) { matchView.update(votes, total); return; }
   currentQuestion.answers.forEach((_, i) => {
     const count = (votes && votes[i]) || 0;
     const pct = total > 0 ? Math.round((count / total) * 100) : 0;
@@ -347,6 +380,19 @@ function markAnswered(question) {
 
 function hasAnswered(question) {
   return sessionStorage.getItem(answerKey(question)) === '1';
+}
+
+// matching/ranking: remember the submitted picks too, so a refresh re-renders
+// the participant's own answers (the plain answered flag only locks the form).
+function savePicks(question, picks) {
+  try { sessionStorage.setItem(`${answerKey(question)}:picks`, JSON.stringify(picks)); } catch (_) {}
+}
+
+function loadPicks(question) {
+  try {
+    const p = JSON.parse(sessionStorage.getItem(`${answerKey(question)}:picks`));
+    return Array.isArray(p) ? p : null;
+  } catch (_) { return null; }
 }
 
 // Stable per-browser id sent with each vote so the server can deduplicate across

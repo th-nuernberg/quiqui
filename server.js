@@ -193,8 +193,166 @@ function repoDirName(repoUrl) {
 }
 
 const MAX_ANSWERS = 6;
-const VALID_TYPES = new Set(['single', 'multiple']);
+const VALID_TYPES = new Set(['single', 'multiple', 'matching', 'ranking']);
 const VALID_LETTERS = new Set('abcdefghijklmnopqrstuvwxyz'.slice(0, MAX_ANSWERS).split(''));
+
+// ─── Matching / ranking questions ─────────────────────────────────────────────
+// Both types assign one value ("choice") to every item. `matching` items carry an
+// inline blank — "The capital of Germany is [Berlin|Paris|London]." — whose FIRST
+// option is the correct one. If every blank has exactly one option the choices are
+// derived from all items and form an exclusive pool (each value usable only as
+// often as it occurs). `ranking` is matching over the pool 1..n: the participant
+// puts a rank in front of every item; `correct` lists the item letters in rank
+// order. See CLAUDE.md "Matching and ranking questions".
+
+// Stands in for the blank inside an item's text on the wire. Alphanumeric on
+// purpose so marked / KaTeX / DOMPurify pass it through untouched; the client
+// swaps it for the <select> in the DOM (never via string replacement).
+const BLANK_TOKEN = 'QUIQUIBLANK';
+const isAssignmentType = t => t === 'matching' || t === 'ranking';
+
+// Find the `[a|b|c]` blanks of one matching item. Code spans and math are masked
+// first so brackets there are not blanks; `[text](url)` links and `\[` are not
+// blanks either. Returns { blanks: [{start, end, options}], hidden } where
+// `hidden` counts bracket groups that sit inside code/math (an authoring error —
+// the blank would not render as an input).
+function findBlanks(text) {
+  const re = /(?<!\\)\[([^\[\]]*)\](?!\()/g;
+  const scan = str => [...str.matchAll(re)].map(m => ({
+    start: m.index, end: m.index + m[0].length,
+    options: m[1].split('|').map(o => o.trim()),
+  }));
+  const masked = text.replace(/```[\s\S]*?```|`[^`\n]*`|\$\$[\s\S]*?\$\$|\$[^$\n]*\$/g, m => ' '.repeat(m.length));
+  const blanks = scan(masked);
+  return { blanks, hidden: scan(text).length - blanks.length };
+}
+
+// Validate a raw `matching` question. Returns an error string or null.
+function validateMatching(q, label) {
+  if (q.correct !== undefined)
+    return `${label}: "correct" is not allowed on a matching question — the correct value is the first option of each [blank].`;
+  const lines = q.answers.map(a => findBlanks(a));
+  let singles = 0, multis = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const text = q.answers[i];
+    const where = `${label}, answer ${i + 1}`;
+    if (text.includes(BLANK_TOKEN)) return `${where}: must not contain the reserved word ${BLANK_TOKEN}.`;
+    if (lines[i].hidden) return `${where}: a [blank] inside a code span or math cannot be answered — put it in plain text.`;
+    if (lines[i].blanks.length !== 1)
+      return `${where}: needs exactly one [blank], e.g. "…is [Berlin|Paris|Rome]." (found ${lines[i].blanks.length}).`;
+    const opts = lines[i].blanks[0].options;
+    if (opts.some(o => !o)) return `${where}: the [blank] contains an empty option.`;
+    if (opts.length > MAX_ANSWERS) return `${where}: the [blank] has ${opts.length} options — maximum is ${MAX_ANSWERS}.`;
+    if (new Set(opts).size !== opts.length) return `${where}: the [blank] lists the same option twice.`;
+    if (opts.length === 1) singles++; else multis++;
+  }
+  if (singles && multis)
+    return `${label}: mixes single-option blanks [Berlin] with multi-option blanks [Berlin|Paris] — use one style per question.`;
+  if (singles && new Set(lines.map(l => l.blanks[0].options[0])).size < 2)
+    return `${label}: all blanks have the same value — nothing to choose from.`;
+  return null;
+}
+
+// Validate a raw `ranking` question. `correct` is optional (omit = unscored
+// opinion ranking); when present it lists every item letter once, in rank order.
+function validateRanking(q, label) {
+  if (q.correct === undefined || q.correct === null) return null;
+  const letters = Array.isArray(q.correct) ? q.correct : null;
+  if (!letters || letters.length !== q.answers.length)
+    return `${label}: ranking "correct" must list all ${q.answers.length} letters in rank order (e.g. [C, A, B]) — or be omitted for an unscored ranking.`;
+  const seen = new Set();
+  for (const l of letters) {
+    const ch = String(l).trim()[0]?.toLowerCase();
+    if (!ch || !VALID_LETTERS.has(ch) || ch.charCodeAt(0) - 97 >= q.answers.length)
+      return `${label}: ranking "correct" contains invalid letter ${JSON.stringify(l)}.`;
+    if (seen.has(ch)) return `${label}: ranking "correct" lists ${ch.toUpperCase()} twice.`;
+    seen.add(ch);
+  }
+  return null;
+}
+
+function shuffleInPlace(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Turn a validated raw matching/ranking question into the wire shape shared by
+// host, participants and projector:
+//   answers   — per item; matching: text containing BLANK_TOKEN, ranking: item text
+//   choices   — per item, the values offered (matching: always shuffled — authored
+//               order would reveal "first = correct"; ranking: "1".."n")
+//   capacity  — null, or per value how often it may be used (exclusive pool; all
+//               items then share the identical `choices` list)
+//   correct   — per item the correct index into its `choices` (host-only, stripped
+//               before broadcast); absent for an unscored ranking
+//   scored    — whether a key exists (public)
+function buildAssignmentQuestion(q) {
+  if (q.type === 'ranking') {
+    const n = q.answers.length;
+    const labels = Array.from({ length: n }, (_, i) => String(i + 1));
+    let correct;
+    if (Array.isArray(q.correct)) {
+      correct = new Array(n);
+      toCorrectIndices(q.correct).forEach((itemIdx, rank) => { correct[itemIdx] = rank; });
+    }
+    return {
+      ...q,
+      choices: q.answers.map(() => labels),
+      capacity: labels.map(() => 1),
+      correct,
+      scored: correct !== undefined,
+    };
+  }
+
+  const lines = q.answers.map(a => findBlanks(a).blanks[0]);
+  const answers = q.answers.map((a, i) => a.slice(0, lines[i].start) + BLANK_TOKEN + a.slice(lines[i].end));
+  const derived = lines.every(b => b.options.length === 1);
+  if (derived) {
+    const values = lines.map(b => b.options[0]);
+    const pool = shuffleInPlace([...new Set(values)]);
+    const capacity = pool.map(v => values.filter(x => x === v).length);
+    return {
+      ...q, answers,
+      choices: values.map(() => pool),
+      capacity,
+      correct: values.map(v => pool.indexOf(v)),
+      scored: true,
+    };
+  }
+  const choices = lines.map(b => shuffleInPlace([...b.options]));
+  return {
+    ...q, answers, choices, capacity: null,
+    correct: lines.map((b, i) => choices[i].indexOf(b.options[0])),
+    scored: true,
+  };
+}
+
+// Permute the items of a built matching/ranking question (answers, choices and
+// correct travel together). The choices inside each blank are not touched.
+function shuffleItems(q) {
+  const order = shuffleInPlace(q.answers.map((_, i) => i));
+  const pick = arr => order.map(i => arr[i]);
+  return { ...q, answers: pick(q.answers), choices: pick(q.choices), correct: q.correct && pick(q.correct) };
+}
+
+// Structural check of a built question as sent back by the host on activation.
+function isWellFormedAssignment(q) {
+  const n = Array.isArray(q.answers) ? q.answers.length : 0;
+  return n >= 2 && n <= MAX_ANSWERS
+    && Array.isArray(q.choices) && q.choices.length === n
+    && q.choices.every(c => Array.isArray(c) && c.length >= 1 && c.length <= MAX_ANSWERS)
+    && (q.capacity === null || (Array.isArray(q.capacity) && q.capacity.length === q.choices[0].length));
+}
+
+// Correct answer(s) as sent in answer-revealed / session-state: choice index per
+// item for matching/ranking, bare 0-based answer indices otherwise.
+function correctIndicesFor(question) {
+  if (isAssignmentType(question.type)) return Array.isArray(question.correct) ? question.correct : [];
+  return toCorrectIndices(question.correct);
+}
 
 // Validate a parsed question list from a YAML file. Returns an error string or null.
 function validateQuestions(questions, file) {
@@ -209,7 +367,7 @@ function validateQuestions(questions, file) {
     if (typeof q.question !== 'string' || !q.question.trim())
       return `${label}: "question" must be a non-empty string.`;
     if (!VALID_TYPES.has(q.type))
-      return `${label}: "type" must be "single" or "multiple" (got ${JSON.stringify(q.type)}).`;
+      return `${label}: "type" must be "single", "multiple", "matching" or "ranking" (got ${JSON.stringify(q.type)}).`;
     if (!Array.isArray(q.answers) || q.answers.length < 2)
       return `${label}: "answers" must be a list of at least 2 options.`;
     if (q.answers.length > MAX_ANSWERS)
@@ -219,6 +377,12 @@ function validateQuestions(questions, file) {
 
     if (q.reveal_explanation !== undefined && typeof q.reveal_explanation !== 'boolean')
       return `${label}: "reveal_explanation" must be true or false.`;
+
+    if (q.type === 'matching' || q.type === 'ranking') {
+      const err = q.type === 'matching' ? validateMatching(q, label) : validateRanking(q, label);
+      if (err) return err;
+      continue;
+    }
 
     // Validate correct field (optional — omit for generic/unscored questions)
     const letters = Array.isArray(q.correct) ? q.correct : (q.correct != null ? [q.correct] : []);
@@ -836,9 +1000,17 @@ app.get('/api/questions', requireHost, async (req, res) => {
     touchSession(sessionId);
     // Optional per-session answer shuffling (config.yaml `shuffle: true`).
     // A per-question `shuffle: false` opts an individual question out.
-    const shuffled = questions.map(q =>
-      (s.shuffle && q.shuffle !== false) ? shuffleAnswers(q) : q
-    );
+    // A per-question `shuffle: true|false` overrides the config default.
+    // matching/ranking are first expanded to their wire shape (parsing the
+    // blanks and building the shuffled choice lists), then their items are
+    // permuted like any other question's answers.
+    const shuffled = questions.map(raw => {
+      const assign = isAssignmentType(raw.type);
+      const q = assign ? buildAssignmentQuestion(raw) : raw;
+      const doShuffle = typeof raw.shuffle === 'boolean' ? raw.shuffle : s.shuffle;
+      if (!doShuffle) return q;
+      return assign ? shuffleItems(q) : shuffleAnswers(q);
+    });
     // Resolve reveal_explanation once (per-question value wins, else the
     // config.yaml default) so the host sends a definite boolean on activation.
     const resolved = shuffled.map(q => ({
@@ -936,7 +1108,7 @@ io.on('connection', (socket) => {
     const s = sessions.get(sessionId);
     if (s && s.activeQuestion) {
       const { correct, explanation, reveal_explanation, ...participantQuestion } = s.activeQuestion;
-      const correctIndices = s.answersRevealed ? toCorrectIndices(s.activeQuestion.correct) : [];
+      const correctIndices = s.answersRevealed ? correctIndicesFor(s.activeQuestion) : [];
       socket.emit('session-state', {
         exists: true,
         question: participantQuestion,
@@ -969,11 +1141,18 @@ io.on('connection', (socket) => {
     s.answersRevealed = false;
     touchSession(sessionId);
 
+    // Host-supplied matching/ranking shape must be structurally sound before any
+    // vote bookkeeping relies on it.
+    if (isAssignmentType(question.type) && !isWellFormedAssignment(question)) return;
+
     const sameQuestion = s.activeQuestion && s.activeQuestion.question === question.question;
     if (!sameQuestion) {
       s.votes = {};
       s.voters = new Set();
-      question.answers.forEach((_, i) => { s.votes[i] = 0; });
+      // matching/ranking: votes[item] = per-choice counts; otherwise votes[answer] = count
+      question.answers.forEach((_, i) => {
+        s.votes[i] = isAssignmentType(question.type) ? question.choices[i].map(() => 0) : 0;
+      });
     }
     s.activeQuestion = question;
 
@@ -1001,7 +1180,7 @@ io.on('connection', (socket) => {
     s.open = false;
     s.answersRevealed = true;
     touchSession(sessionId);
-    const correctIndices = toCorrectIndices(s.activeQuestion.correct);
+    const correctIndices = correctIndicesFor(s.activeQuestion);
     io.to(`session:${sessionId}`).emit('answer-revealed', { correctIndices, votes: s.votes, total: s.voters.size, explanation: publicExplanation(s.activeQuestion) });
   });
 
@@ -1031,6 +1210,24 @@ io.on('connection', (socket) => {
     // room-wide vote-update broadcast. Cap it far above any real session size
     // to bound memory and broadcast load; legitimate sessions never reach it.
     if (s.voters.size >= 10000) return;
+
+    // matching/ranking: exactly one choice index per item, each within that
+    // item's own choice list, and (exclusive pool) no value used more often than
+    // it occurs. The UI enforces all of this; this blocks a scripted client.
+    const aq = s.activeQuestion;
+    if (isAssignmentType(aq.type)) {
+      if (!Array.isArray(selected) || selected.length !== aq.answers.length) return;
+      if (selected.some((c, i) => !Number.isInteger(c) || c < 0 || c >= aq.choices[i].length)) return;
+      if (aq.capacity) {
+        const used = aq.capacity.map(() => 0);
+        for (const c of selected) used[c]++;
+        if (used.some((n, c) => n > aq.capacity[c])) return;
+      }
+      s.voters.add(voterKey);
+      selected.forEach((c, i) => { s.votes[i][c]++; });
+      io.to(`session:${sessionId}`).emit('vote-update', { votes: s.votes, total: s.voters.size });
+      return;
+    }
 
     // Validate selections: must be a non-empty array of valid integer indices
     if (!Array.isArray(selected) || selected.length === 0 || selected.length > s.activeQuestion.answers.length) return;

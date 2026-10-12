@@ -474,7 +474,7 @@ function renderQuestionList() {
     item.tabIndex = 0;
     item.innerHTML = `
       <span class="q-text">${mdInline(previewQuestion(q.question))}</span>
-      <span class="q-badge">${q.type === 'multiple' ? 'multi' : 'single'}</span>
+      <span class="q-badge">${{ multiple: 'multi', matching: 'matching', ranking: 'ranking' }[q.type] || 'single'}</span>
     `;
     item.addEventListener('click', () => selectQuestion(i));
     item.addEventListener('keydown', e => {
@@ -531,8 +531,10 @@ function selectQuestion(index) {
   statAnsweredBadge.style.display = '';
   setState('inactive');
 
+  // matching/ranking show their key inline in the rows (see matching.js), so
+  // there is no letter prefix for them.
   const correct = selectedQuestion.correct;
-  const letters = correct != null
+  const letters = correct != null && !QQ.isAssignment(selectedQuestion)
     ? (Array.isArray(correct) ? correct : [correct]).map(l => String(l).trim()[0].toUpperCase()).join(', ')
     : null;
 
@@ -895,6 +897,10 @@ socket.on('session-state', ({ exists } = {}) => {
 
 // ─── Bar chart ────────────────────────────────────────────────────────────────
 function renderBarChart(answers, votes, total, correctIndices = []) {
+  if (QQ.isAssignment(selectedQuestion)) {
+    QQ.renderHost(barChart, selectedQuestion, votes, total, correctIndices, mdInline);
+    return;
+  }
   barChart.innerHTML = '';
   const keys = ['A', 'B', 'C', 'D', 'E', 'F'];
   answers.forEach((ans, i) => {
