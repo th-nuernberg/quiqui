@@ -718,6 +718,104 @@ select:focus {
 
 .opt-bar-pct.visible { display: block; }
 
+/* ─── Matching / ranking rows ──────────────────────────────────── */
+.match-item {
+  padding: 10px 14px;
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font-size: 15px;
+  overflow-wrap: break-word;
+}
+
+.match-line--rank {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.match-text { min-width: 0; }
+
+/* Overrides the global full-width select rule: the dropdown sits inline in the
+   sentence (matching) or in front of the item (ranking). */
+.match-select {
+  flex: 0 0 auto;
+  width: auto;
+  height: 32px;
+  min-width: 4.5em;
+  font: inherit;
+  font-size: 15px;
+  padding: 0 8px;
+  margin: 2px 2px;
+  max-width: 100%;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-mid);
+  border-radius: 6px;
+}
+.match-line--rank .match-select { min-width: 3.6em; }
+.match-select:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.match-select:disabled { opacity: 1; }
+.match-select--ok  { border-color: #4caf50; background: #e8f5e9; color: #1b5e20; }
+.match-select--bad { border-color: #d9534f; background: #fdecea; color: #7a1c18; }
+
+.match-blank {
+  display: inline-block;
+  min-width: 5.5em;
+  text-align: center;
+  font-weight: 600;
+  border-bottom: 2px solid var(--color-text-hint);
+}
+.match-line--rank .match-blank { min-width: 1.6em; }
+.match-blank--correct { color: #1b5e20; border-bottom-color: #4caf50; }
+
+.match-key {
+  display: inline-block;
+  padding: 0 8px;
+  font-weight: 600;
+  color: var(--color-accent-dark);
+  background: var(--color-accent-light);
+  border-radius: 6px;
+}
+.match-key--correct { color: #1b5e20; background: #e8f5e9; }
+
+.match-mean {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--color-text-hint);
+  white-space: nowrap;
+}
+
+.match-bar {
+  display: none;
+  height: 10px;
+  margin-top: 8px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--color-bg-tertiary);
+}
+.match-bar.visible { display: flex; }
+.match-seg { height: 100%; transition: width 0.4s ease; }
+
+.match-legend {
+  display: none;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-text-hint);
+}
+.match-legend.visible { display: flex; }
+.match-sw {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border-radius: 2px;
+}
+.match-leg--correct { color: #1b5e20; font-weight: 600; }
+.match-leg--mine { font-weight: 600; }
+
 /* ─── Footer ───────────────────────────────────────────────────── */
 .site-footer {
   text-align: center;

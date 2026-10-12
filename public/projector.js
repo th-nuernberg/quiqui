@@ -31,6 +31,7 @@ const socket = io({ path: `${BASE_PATH}/socket.io` });
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let currentQuestion = null;
+let matchView = null;    // QQ view for matching/ranking questions (see matching.js)
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
 const screenWaiting  = document.getElementById('screen-waiting');
@@ -204,10 +205,21 @@ socket.on('session-created', ({ title, shortlink }) => {
 // ─── Show question ────────────────────────────────────────────────────────────
 function showQuestion(question) {
   currentQuestion = question;
+  matchView = null;
   showRevealExplanation(null);
 
-  typeHint.textContent = question.type === 'multiple' ? 'Select all that apply' : 'Select one answer';
   questionText.innerHTML = mdHtml(question.question);
+
+  if (QQ.isAssignment(question)) {
+    typeHint.textContent = question.type === 'ranking'
+      ? 'Give every item its own rank (1 = first)'
+      : 'Choose a value for every line';
+    matchView = QQ.create(answerList, question, { mode: 'projector', md: mdInline });
+    showScreen('question');
+    return;
+  }
+
+  typeHint.textContent = question.type === 'multiple' ? 'Select all that apply' : 'Select one answer';
 
   answerList.innerHTML = '';
   const keys = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -247,6 +259,7 @@ function showRevealExplanation(text) {
 // ─── Correct answer highlight ─────────────────────────────────────────────────
 function highlightCorrect(correctIndices) {
   if (!correctIndices || !correctIndices.length) return;
+  if (matchView) { matchView.reveal(correctIndices); refit(); return; }
   document.querySelectorAll('.answer-opt').forEach(el => {
     const idx = parseInt(el.dataset.index, 10);
     if (correctIndices.includes(idx)) el.classList.add('answer-correct');
@@ -256,6 +269,7 @@ function highlightCorrect(correctIndices) {
 // ─── Inline bar chart ─────────────────────────────────────────────────────────
 function showInlineBars() {
   if (!currentQuestion) return;
+  if (matchView) { matchView.showBars(); refit(); return; }
   currentQuestion.answers.forEach((_, i) => {
     document.getElementById(`opt-bar-wrap-${i}`)?.classList.add('visible');
     document.getElementById(`opt-bar-pct-${i}`)?.classList.add('visible');
@@ -265,6 +279,7 @@ function showInlineBars() {
 
 function updateInlineBars(votes, total) {
   if (!currentQuestion) return;
+  if (matchView) { matchView.update(votes, total); refit(); return; }
   currentQuestion.answers.forEach((_, i) => {
     const count = (votes && votes[i]) || 0;
     const pct = total > 0 ? Math.round((count / total) * 100) : 0;
