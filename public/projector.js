@@ -301,6 +301,7 @@ function updateInlineBars(votes, total) {
 function showScreen(name) {
   screenWaiting.style.display  = name === 'waiting'  ? '' : 'none';
   screenQuestion.style.display = name === 'question' ? '' : 'none';
+  if (name !== 'question') showRevealExplanation(null);
   refit();
 }
 
