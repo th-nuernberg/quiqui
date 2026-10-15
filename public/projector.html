@@ -47,11 +47,18 @@
           <div class="type-hint" id="type-hint"></div>
           <div class="q-heading" id="proj-q-text"></div>
           <div class="answer-list" id="proj-answer-list"></div>
-          <div class="reveal-explanation" id="reveal-explanation" style="display:none;"></div>
           <div class="meta-line" id="proj-result-meta" style="display:none;"></div>
         </section>
 
       </div>
+
+      <!-- Explanation card — only after Reveal, for questions that opted in.
+           Outside the fit wrapper so it keeps its natural size; the page scrolls
+           to it, as on the participant view. -->
+      <section class="card explanation-card" id="explanation-card" style="display:none;" aria-labelledby="explanation-card-title">
+        <div class="type-hint" id="explanation-card-title">Explanation</div>
+        <div class="reveal-explanation" id="reveal-explanation"></div>
+      </section>
 
     </div>
 

@@ -25,16 +25,20 @@
 /* The only dynamically-scaled element. fitScreen() measures its natural height
    and sets a zoom (≤1) so the card fits the space left below the header — more
    answer options or a shorter screen shrink just the card, leaving the header
-   and QR sidebar stable. transform-origin keeps it anchored to the top. */
+   and QR sidebar stable. Uses `zoom` (not transform) so the layout box shrinks
+   too and the explanation card below sits directly under the scaled card. */
 .proj-card-fit {
-  transform-origin: top center;
+  margin-bottom: 1rem;
 }
 
 /* Content column: reuses .page-wrap--narrow from style.css, but the projector
    has more screen real estate, so widen it to 1.5× (480px → 720px) and drop the
    bottom padding override so it sits flush */
 .proj-content {
-  max-width: 720px;
+  /* Fixed basis (not content-sized) so the column — and the question card —
+     doesn't grow when the wide explanation card appears on reveal. */
+  flex: 0 1 720px;
+  min-width: 0;
   padding-bottom: 1rem;
 }
 
@@ -94,4 +98,19 @@
 .projector-outer .answer-opt {
   cursor: default;
   pointer-events: none;
+}
+
+/* Explanation card: match the answer text size instead of inheriting the 16px
+   base (which the 1.5× page zoom turns into 24px next to the fitted question
+   card). Headings in the Markdown are capped to the same size. */
+.projector-outer .reveal-explanation {
+  font-size: 14px;
+}
+.projector-outer .reveal-explanation h1,
+.projector-outer .reveal-explanation h2,
+.projector-outer .reveal-explanation h3,
+.projector-outer .reveal-explanation h4 {
+  font-size: 1em;
+  font-weight: 600;
+  margin: 0;
 }

@@ -41,6 +41,7 @@ const questionText   = document.getElementById('proj-q-text');
 const answerList     = document.getElementById('proj-answer-list');
 const resultMeta     = document.getElementById('proj-result-meta');
 const revealExplanationEl = document.getElementById('reveal-explanation');
+const explanationCard = document.getElementById('explanation-card');
 const qrImg          = document.getElementById('proj-qr-img');
 const joinUrlEl      = document.getElementById('proj-join-url');
 const cardFit        = document.getElementById('proj-card-fit');
@@ -58,12 +59,12 @@ function fitScreen() {
   if (!cardFit) return;
   // Reset to natural size before measuring; rect values already include the
   // parent's CSS zoom, so all the maths below is in real viewport pixels.
-  cardFit.style.transform = 'scale(1)';
+  cardFit.style.zoom = 1;
   const rect = cardFit.getBoundingClientRect();
   const available = (window.innerHeight - rect.top) * FIT_MARGIN;
   if (rect.height <= 0) return;
   const scale = Math.min(MAX_CARD_SCALE, available / rect.height);
-  cardFit.style.transform = `scale(${scale})`;
+  cardFit.style.zoom = scale;
 }
 window.addEventListener('resize', fitScreen);
 fitScreen();
@@ -245,13 +246,19 @@ function showQuestion(question) {
 
 // ─── Explanation shown on reveal (question opted in via reveal_explanation) ───
 function showRevealExplanation(text) {
-  if (!revealExplanationEl) return;
+  if (!revealExplanationEl || !explanationCard) return;
   if (text) {
     revealExplanationEl.innerHTML = mdHtml(text);
-    revealExplanationEl.style.display = '';
+    revealExplanationEl.querySelectorAll('table').forEach(t => {
+      const wrap = document.createElement('div');
+      wrap.className = 'table-scroll';
+      t.parentNode.insertBefore(wrap, t);
+      wrap.appendChild(t);
+    });
+    explanationCard.style.display = '';
   } else {
     revealExplanationEl.innerHTML = '';
-    revealExplanationEl.style.display = 'none';
+    explanationCard.style.display = 'none';
   }
   refit();
 }
