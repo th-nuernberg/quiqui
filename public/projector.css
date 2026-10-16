@@ -5,6 +5,9 @@
    (see .proj-card-fit + fitScreen() in projector.js). 1.5 = reference scale for
    a 1920px-wide beamer. */
 .projector-outer {
+  /* Definite width (not content-sized): otherwise the column's width follows
+     its content and jumps when e.g. the explanation card appears. */
+  width: 100%;
   display: flex;
   flex-direction: row;
   align-items: flex-start;
@@ -38,8 +41,16 @@
   /* Fixed basis (not content-sized) so the column — and the question card —
      doesn't grow when the wide explanation card appears on reveal. */
   flex: 0 1 720px;
+  max-width: none;   /* overrides .page-wrap--narrow's 480px */
   min-width: 0;
   padding-bottom: 1rem;
+}
+
+/* Wider column while the answers sit in columns (set by fitScreen()): more of
+   them fit side by side, so less shrinking. 1040px × 1.5 zoom plus the sidebar
+   just fills a 1920px beamer. */
+.proj-content.proj-wide {
+  flex-basis: 1040px;
 }
 
 .proj-sidebar {
@@ -114,3 +125,7 @@
   font-weight: 600;
   margin: 0;
 }
+
+/* The participant view snaps the page to the explanation card; on the beamer
+   that would scroll the header away on its own, so no snapping here. */
+html:has(.projector-stage) { scroll-snap-type: none; }

@@ -637,6 +637,15 @@ select:focus {
 
 .answer-opt:hover { background: var(--color-bg-secondary); }
 
+/* Single/multiple answers as a grid — QQ.layoutAnswers() (matching.js) sets the
+   column count from the widest answer: short answers side by side, long ones one
+   per row. Without the class (matching/ranking) the list stays a plain column. */
+.answer-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
 /* Let the answer text column shrink inside the flex row and break long
    words/URLs instead of forcing horizontal overflow on narrow screens */
 .answer-opt > div:last-child {

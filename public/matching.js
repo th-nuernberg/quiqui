@@ -1,6 +1,7 @@
 // Shared rendering for `matching` and `ranking` questions — used by
 // participant.js, projector.js and host.js (no bundler, so one plain script that
-// exposes `window.QQ`). All three views show one row per item:
+// exposes `window.QQ`). Also holds the answer-grid layout for single/multiple
+// questions (layoutAnswers, bottom of file). All three views show one row per item:
 //
 //   matching  "The capital of Germany is [ Berlin ▾ ]."   (blank inside the text)
 //   ranking   "[ 2 ▾ ]  Embed the chunks"                  (rank in front)
@@ -233,5 +234,57 @@
     if (correctIdx && correctIdx.length) view.reveal(correctIdx);
   }
 
-  global.QQ = { BLANK, isAssignment, create, renderHost };
+  // ─── Answer grid (single / multiple) ─────────────────────────────────────────
+  // Short answers (angles, numbers, single words) go side by side; long ones stay
+  // one per row. The column count follows the widest answer's unwrapped width, so
+  // each view (phone, host card, projector) picks what fits its own width with the
+  // same code. Rows are balanced (8 answers in 5 columns → 4 + 4, not 5 + 3).
+  // Call after the list is rendered AND visible (a hidden list measures 0) and
+  // again whenever its width changes. Returns the column count.
+  const GRID_GAP = 8;          // matches .answer-grid gap
+  const MIN_TEXT_WIDTH = 80;   // room for the "100% (1000)" line under the bar
+
+  const optKey = i => String.fromCharCode(65 + i);   // 0 → A … 19 → T
+
+  function layoutAnswers(list, onRelayout) {
+    list.classList.add('answer-grid');
+    list.style.gridTemplateColumns = '';
+    const opts = Array.from(list.children);
+    const listWidth = list.clientWidth;
+    if (opts.length < 2 || !listWidth) return 1;
+
+    let widest = 0;
+    for (const opt of opts) {
+      const text = opt.querySelector('.opt-text');
+      if (!text) return 1;
+      const body = text.parentElement;   // flex:1 column: text + bar + percentage
+      const chrome = opt.offsetWidth - body.offsetWidth;   // padding, border, key, gap
+      text.style.display = 'inline-block';
+      text.style.whiteSpace = 'nowrap';
+      widest = Math.max(widest, chrome + Math.max(MIN_TEXT_WIDTH, text.offsetWidth));
+      text.style.display = '';
+      text.style.whiteSpace = '';
+    }
+
+    let cols = Math.max(1, Math.min(opts.length, Math.floor((listWidth + GRID_GAP) / (widest + GRID_GAP))));
+    cols = Math.ceil(opts.length / Math.ceil(opts.length / cols));
+    list.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+
+    // An image that loads later changes the widths — measure again then.
+    if (onRelayout) {
+      list.querySelectorAll('img').forEach(img => {
+        if (!img.complete) img.addEventListener('load', onRelayout, { once: true });
+      });
+    }
+    return cols;
+  }
+
+  // Back to the plain one-per-row list (before rendering matching/ranking into
+  // the same container).
+  function resetAnswerLayout(list) {
+    list.classList.remove('answer-grid');
+    list.style.gridTemplateColumns = '';
+  }
+
+  global.QQ = { BLANK, isAssignment, create, renderHost, optKey, layoutAnswers, resetAnswerLayout };
 })(window);

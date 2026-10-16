@@ -195,6 +195,7 @@ function showQuestion(question) {
 
   questionText.innerHTML = mdHtml(question.question);
   matchView = null;
+  QQ.resetAnswerLayout(answerList);
 
   if (QQ.isAssignment(question)) {
     typeHint.textContent = question.type === 'ranking'
@@ -222,15 +223,14 @@ function showQuestion(question) {
   typeHint.textContent = question.type === 'multiple' ? 'Select all that apply' : 'Select one answer';
 
   answerList.innerHTML = '';
-  const keys = ['A', 'B', 'C', 'D', 'E', 'F'];
   question.answers.forEach((ans, i) => {
     const opt = document.createElement('div');
     opt.className = 'answer-opt' + (question.type === 'multiple' ? ' opt-multi' : '');
     opt.dataset.index = i;
     opt.innerHTML = `
-      <div class="opt-key">${keys[i] || i + 1}</div>
+      <div class="opt-key">${QQ.optKey(i)}</div>
       <div style="flex:1">
-        <div>${mdInline(ans)}</div>
+        <div class="opt-text">${mdInline(ans)}</div>
         <div class="opt-bar-wrap" id="opt-bar-wrap-${i}">
           <div class="opt-bar-fill" id="opt-bar-fill-${i}" style="width:0%"></div>
         </div>
@@ -247,8 +247,15 @@ function showQuestion(question) {
   if (submitted) resultMeta.textContent = 'Answer already submitted.';
 
   showScreen('question');
+  layoutAnswers();
   if (submitted) showInlineBars();
 }
+
+// Columns for short answers (see QQ.layoutAnswers); re-run when the width changes.
+function layoutAnswers() {
+  if (currentQuestion && !QQ.isAssignment(currentQuestion)) QQ.layoutAnswers(answerList, layoutAnswers);
+}
+window.addEventListener('resize', () => requestAnimationFrame(layoutAnswers));
 
 function toggleAnswer(index, el, type) {
   if (submitted) return;

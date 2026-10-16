@@ -110,6 +110,6 @@ If a participant hasn't voted when you pause or reveal, they see "Voting has end
 
 <img src="public/projector-view.png" alt="Projector View" width="700" />
 
-Open `/view/<session_url>` in your browser and project it on the beamer. It shows the same question and live result bars as the participant view, plus the QR code and join URL — so participants can scan at any time. No submit button, no interaction needed.
+Open `/view/<session_url>` in your browser and project it on the beamer. It shows the same question and live result bars as the participant view, plus the QR code and join URL — so participants can scan at any time. No submit button, no interaction needed. Short answers (numbers, angles, single words) are laid out side by side in columns; a question that still doesn't fit at a readable size scrolls instead of shrinking further.
 
 The projector URL is shown in the host view next to the participant join URL as soon as your questions are loaded. If your organisation doesn't allow browser add-ins in PowerPoint, this is the recommended way to display live results during a presentation.

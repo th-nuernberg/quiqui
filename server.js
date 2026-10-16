@@ -192,7 +192,7 @@ function repoDirName(repoUrl) {
     .slice(0, 64);
 }
 
-const MAX_ANSWERS = 6;
+const MAX_ANSWERS = 20;
 const VALID_TYPES = new Set(['single', 'multiple', 'matching', 'ranking']);
 const VALID_LETTERS = new Set('abcdefghijklmnopqrstuvwxyz'.slice(0, MAX_ANSWERS).split(''));
 
