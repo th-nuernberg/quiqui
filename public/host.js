@@ -898,11 +898,11 @@ socket.on('session-state', ({ exists } = {}) => {
 // ─── Bar chart ────────────────────────────────────────────────────────────────
 function renderBarChart(answers, votes, total, correctIndices = []) {
   if (QQ.isAssignment(selectedQuestion)) {
+    QQ.resetAnswerLayout(barChart);
     QQ.renderHost(barChart, selectedQuestion, votes, total, correctIndices, mdInline);
     return;
   }
   barChart.innerHTML = '';
-  const keys = ['A', 'B', 'C', 'D', 'E', 'F'];
   answers.forEach((ans, i) => {
     const count = (votes && votes[i]) || 0;
     const pct = total > 0 ? Math.round((count / total) * 100) : 0;
@@ -913,9 +913,9 @@ function renderBarChart(answers, votes, total, correctIndices = []) {
       + (selectedQuestion?.type === 'multiple' ? ' opt-multi' : '');
     block.style.cursor = 'default';
     block.innerHTML = `
-      <div class="opt-key">${keys[i] || i + 1}</div>
+      <div class="opt-key">${QQ.optKey(i)}</div>
       <div style="flex:1">
-        <div>${mdInline(ans)}</div>
+        <div class="opt-text">${mdInline(ans)}</div>
         <div class="opt-bar-wrap visible">
           <div class="opt-bar-fill" style="width:${pct}%"></div>
         </div>
@@ -924,7 +924,15 @@ function renderBarChart(answers, votes, total, correctIndices = []) {
     `;
     barChart.appendChild(block);
   });
+  layoutBarChart();
 }
+
+// Columns for short answers (see QQ.layoutAnswers); re-run when the width changes.
+function layoutBarChart() {
+  if (barChart.classList.contains('answer-grid') || barChart.querySelector('.opt-text'))
+    QQ.layoutAnswers(barChart, layoutBarChart);
+}
+window.addEventListener('resize', () => requestAnimationFrame(layoutBarChart));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 // Inline preview for the question list — drops code blocks, tables and images

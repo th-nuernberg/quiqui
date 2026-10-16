@@ -47,23 +47,37 @@ const joinUrlEl      = document.getElementById('proj-join-url');
 const cardFit        = document.getElementById('proj-card-fit');
 
 // ─── Responsive scaling ─────────────────────────────────────────────────────────
-// Only the question card scales; the header (logo + title) and QR sidebar stay
-// at the fixed reference zoom (1.5, set in CSS on .projector-outer) for a stable
-// look. We measure the card's natural height and shrink it (scale ≤ 1) just
-// enough to fit the space left between its top edge and the bottom of the
-// viewport — so more answer options or a shorter screen shrink the card alone.
+// The header (logo + title) and QR sidebar stay at the fixed reference zoom (1.5,
+// set in CSS on .projector-outer) for a stable look. The question card is fitted
+// in three steps, so text stays readable:
+//   1. Short answers go into columns (QQ.layoutAnswers); when they do, the column
+//      widens (.proj-wide) so more fit side by side.
+//   2. The card shrinks to fit the space below the header…
+//   3. …but never below MIN_CARD_SCALE. A card still too tall at that size keeps
+//      it and the page scrolls (as it does for the explanation card).
 const MAX_CARD_SCALE = 1;     // never enlarge past its natural (1.5×) size
+const MIN_CARD_SCALE = 0.75;  // readability floor — below this, scroll instead
 const FIT_MARGIN = 0.97;      // breathing room above the bottom edge
+const projContent = document.querySelector('.proj-content');
 
 function fitScreen() {
   if (!cardFit) return;
   // Reset to natural size before measuring; rect values already include the
   // parent's CSS zoom, so all the maths below is in real viewport pixels.
   cardFit.style.zoom = 1;
+  if (currentQuestion && !QQ.isAssignment(currentQuestion)) {
+    projContent.classList.add('proj-wide');
+    if (QQ.layoutAnswers(answerList, fitScreen) === 1) {
+      projContent.classList.remove('proj-wide');
+      QQ.layoutAnswers(answerList);
+    }
+  } else {
+    projContent.classList.remove('proj-wide');
+  }
   const rect = cardFit.getBoundingClientRect();
   const available = (window.innerHeight - rect.top) * FIT_MARGIN;
   if (rect.height <= 0) return;
-  const scale = Math.min(MAX_CARD_SCALE, available / rect.height);
+  const scale = Math.max(MIN_CARD_SCALE, Math.min(MAX_CARD_SCALE, available / rect.height));
   cardFit.style.zoom = scale;
 }
 window.addEventListener('resize', fitScreen);
@@ -210,6 +224,7 @@ function showQuestion(question) {
   showRevealExplanation(null);
 
   questionText.innerHTML = mdHtml(question.question);
+  QQ.resetAnswerLayout(answerList);
 
   if (QQ.isAssignment(question)) {
     typeHint.textContent = question.type === 'ranking'
@@ -223,15 +238,14 @@ function showQuestion(question) {
   typeHint.textContent = question.type === 'multiple' ? 'Select all that apply' : 'Select one answer';
 
   answerList.innerHTML = '';
-  const keys = ['A', 'B', 'C', 'D', 'E', 'F'];
   question.answers.forEach((ans, i) => {
     const opt = document.createElement('div');
     opt.className = 'answer-opt' + (question.type === 'multiple' ? ' opt-multi' : '');
     opt.dataset.index = i;
     opt.innerHTML = `
-      <div class="opt-key">${keys[i] || i + 1}</div>
+      <div class="opt-key">${QQ.optKey(i)}</div>
       <div style="flex:1">
-        <div>${mdInline(ans)}</div>
+        <div class="opt-text">${mdInline(ans)}</div>
         <div class="opt-bar-wrap" id="opt-bar-wrap-${i}">
           <div class="opt-bar-fill" id="opt-bar-fill-${i}" style="width:0%"></div>
         </div>
