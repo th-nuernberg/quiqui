@@ -111,6 +111,98 @@ async function run() {
   answers: [a, b, c]
   correct: B`, /must list all 3 letters/);
 
+  // ── Limits: 20 is the maximum, 21 is rejected ──────────────────────────────
+  console.log('limits (20 max)');
+  {
+    const N = (n, f) => Array.from({ length: n }, (_, i) => f(i));
+    const L = i => String.fromCharCode(65 + i);
+    const yamlList = arr => arr.map(a => `    - "${a}"`).join('\n');
+    const accepted = async (name, body, check) => {
+      const r = await load('v-lim', body);
+      ok(r.status === 200 && r.q && (!check || check(r.q)), `${name} → accepted`);
+    };
+    await accepted('single: 20 answers, correct T', `
+- question: Q
+  type: single
+  correct: T
+  answers:
+${yamlList(N(20, i => 'opt ' + i))}`, q => q.answers.length === 20);
+    await bad('single: 21 answers', `
+- question: Q
+  type: single
+  correct: A
+  answers:
+${yamlList(N(21, i => 'opt ' + i))}`, /maximum is 20/);
+    await bad('single: correct letter beyond T', `
+- question: Q
+  type: single
+  correct: U
+  answers:
+${yamlList(N(20, i => 'opt ' + i))}`, /invalid letter.*A–T/);
+    await accepted('multiple: 20 answers, correct A+T', `
+- question: Q
+  type: multiple
+  correct: [A, T]
+  answers:
+${yamlList(N(20, i => 'opt ' + i))}`);
+    await accepted('matching: 20 lines (variant B)', `
+- question: Q
+  type: matching
+  answers:
+${yamlList(N(20, i => `Item ${i} is [v${i}].`))}`, q => q.answers.length === 20 && q.choices[0].length === 20);
+    await bad('matching: 21 lines', `
+- question: Q
+  type: matching
+  answers:
+${yamlList(N(21, i => `Item ${i} is [v${i}].`))}`, /maximum is 20/);
+    await accepted('matching: 20 choices per blank (variant A)', `
+- question: Q
+  type: matching
+  answers:
+    - "x [${N(20, i => 'c' + i).join('|')}]"
+    - "y [${N(20, i => 'c' + i).join('|')}]"`, q => q.choices[0].length === 20);
+    await bad('matching: 21 choices per blank', `
+- question: Q
+  type: matching
+  answers:
+    - "x [${N(21, i => 'c' + i).join('|')}]"
+    - "y [c0|c1]"`, /maximum is 20/);
+    await accepted('ranking: 20 items with full key', `
+- question: Q
+  type: ranking
+  correct: [${N(20, i => L(19 - i)).join(', ')}]
+  answers:
+${yamlList(N(20, i => 'item ' + i))}`, q => q.answers.length === 20 && q.choices[0].length === 20);
+    await bad('ranking: 21 items', `
+- question: Q
+  type: ranking
+  answers:
+${yamlList(N(21, i => 'item ' + i))}`, /maximum is 20/);
+
+    // Live vote on a 20-answer single question: the last option (index 19) counts.
+    const r = await load('v-lim-vote', `
+- question: Q
+  type: single
+  correct: T
+  shuffle: false
+  answers:
+${yamlList(N(20, i => 'opt ' + i))}`);
+    const host = await connect(), p = await connect();
+    [host, p].forEach(s => s.emit('join-session', { sessionId: 'v-lim-vote' }));
+    await wait(100);
+    host.emit('activate-question', { question: r.q, sessionId: 'v-lim-vote', token: SLUG });
+    await once(p, 'question-activated');
+    const vu = once(host, 'vote-update');
+    p.emit('submit-answer', { sessionId: 'v-lim-vote', selected: [19], voterId: 'lim' });
+    const u = await vu;
+    ok(u.total === 1 && u.votes[19] === 1, 'vote for option 20 (T) is counted');
+    const rv = once(p, 'answer-revealed');
+    host.emit('show-answer', { sessionId: 'v-lim-vote', token: SLUG });
+    const rev = await rv;
+    ok(rev.correctIndices.join() === '19', 'reveal highlights option T (index 19)');
+    [host, p].forEach(s => s.close());
+  }
+
   // ── Transform ──────────────────────────────────────────────────────────────
   console.log('transform');
   {
